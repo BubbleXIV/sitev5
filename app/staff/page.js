@@ -1,8 +1,8 @@
+// app/staff/page.js
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import Image from 'next/image'
 
 export default function StaffPage() {
   const [staff, setStaff] = useState([])
@@ -62,7 +62,7 @@ export default function StaffPage() {
 
   const getCurrentCharacter = (member) => {
     const currentIndex = currentAlts[member.id] || -1
-
+    
     if (currentIndex === -1) {
       // Return main character
       return {
@@ -100,63 +100,97 @@ export default function StaffPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-nightshade-400 to-purple-400 bg-clip-text text-transparent animate-glow">
-            Menu
+            Our Staff
           </h1>
           <p className="text-lg text-gray-300">
-            Discover our exquisite offerings
+            Meet the dedicated team behind The Nightshade's Bloom
           </p>
         </div>
 
-        {categories.map((category) => (
-          <div key={category.id} className="mb-12">
-            <h2 className="text-3xl font-bold mb-8 text-center text-nightshade-300">
-              {category.name}
-            </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {staff.map((member) => {
+            const currentChar = getCurrentCharacter(member)
+            const hasMultiple = hasMultipleCharacters(member)
+            const currentIndex = currentAlts[member.id] || -1
+            
+            return (
+              <div key={member.id} className="card group">
+                {/* Special Role Banner */}
+                {member.special_role && (
+                  <div className="mb-4 -mx-6 -mt-6 px-6 py-2 bg-gradient-to-r from-nightshade-600 to-purple-600 rounded-t-xl">
+                    <div className="text-sm font-semibold text-center">
+                      {member.special_role}
+                    </div>
+                  </div>
+                )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {category.menu_items.map((item) => (
-                <div key={item.id} className="card">
-                  {item.image_url && (
-                    <div className="mb-4 -mx-6 -mt-6">
-                      <img
-                        src={item.image_url}
-                        alt={item.name}
-                        className="w-full h-48 object-cover rounded-t-xl"
-                      />
+                {/* Character Image */}
+                <div className="relative mb-4">
+                  {currentChar.image_url ? (
+                    <img
+                      src={currentChar.image_url}
+                      alt={currentChar.name}
+                      className="w-full h-64 object-cover rounded-lg"
+                    />
+                  ) : (
+                    <div className="w-full h-64 bg-gradient-to-br from-nightshade-800 to-gray-800 rounded-lg flex items-center justify-center">
+                      <span className="text-gray-400">No Image</span>
                     </div>
                   )}
 
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-xl font-bold text-nightshade-300">
-                      {item.name}
-                    </h3>
-                    {item.price_gil !== null && (
-                      <span className="text-lg font-bold text-purple-400 ml-4">
-                        {item.price_gil.toLocaleString()} gil
-                      </span>
-                    )}
-                  </div>
+                  {/* Alt Navigation */}
+                  {hasMultiple && (
+                    <>
+                      <button
+                        onClick={() => cycleAlt(member.id, 'prev')}
+                        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 p-2 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                      <button
+                        onClick={() => cycleAlt(member.id, 'next')}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 p-2 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                      >
+                        <ChevronRight size={20} />
+                      </button>
 
-                  {item.description && (
+                      {/* Character Indicator */}
+                      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black/50 px-3 py-1 rounded-full text-sm">
+                        {currentIndex === -1 ? 'Main' : `Alt ${currentIndex + 1}`}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Character Info */}
+                <div className="text-center">
+                  <h3 className="text-xl font-bold mb-2 text-nightshade-300">
+                    {currentChar.name}
+                  </h3>
+                  <p className="text-purple-400 mb-3 font-medium">
+                    {currentChar.role}
+                  </p>
+                  {currentChar.bio && (
                     <p className="text-gray-300 text-sm leading-relaxed">
-                      {item.description}
+                      {currentChar.bio}
                     </p>
                   )}
                 </div>
-              ))}
-            </div>
 
-            {category.menu_items.length === 0 && (
-              <div className="text-center py-8">
-                <p className="text-gray-400">No items in this category yet.</p>
+                {/* Character Counter */}
+                {hasMultiple && (
+                  <div className="mt-4 text-center text-xs text-gray-400">
+                    {member.staff_alts.length + 1} characters available
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        ))}
+            )
+          })}
+        </div>
 
-        {categories.length === 0 && (
+        {staff.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-400 text-lg">Menu coming soon...</p>
+            <p className="text-gray-400 text-lg">No staff members found.</p>
           </div>
         )}
       </div>

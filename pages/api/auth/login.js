@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import crypto from 'crypto'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -15,12 +16,14 @@ export default async function handler(req, res) {
       .single()
 
     if (error || !admin) {
-      return res.status(401).json({ message: 'User not found' })
+      return res.status(401).json({ message: 'Invalid credentials' })
     }
 
-    // Temporary plain text comparison
-    if (password !== admin.password_hash) {
-      return res.status(401).json({ message: 'Wrong password' })
+    // Create hash of provided password
+    const passwordHash = crypto.createHash('sha256').update(password).digest('hex')
+    
+    if (passwordHash !== admin.password_hash) {
+      return res.status(401).json({ message: 'Invalid credentials' })
     }
 
     res.status(200).json({ 
@@ -29,6 +32,6 @@ export default async function handler(req, res) {
     })
   } catch (error) {
     console.error('Login error:', error)
-    res.status(500).json({ message: 'Server error' })
+    res.status(500).json({ message: 'Internal server error' })
   }
 }

@@ -1,3 +1,4 @@
+'use client'
 export default function LoadingSpinner({ size = 'medium', color = 'nightshade' }) {
   const sizeClasses = {
     small: 'w-4 h-4 border-2',

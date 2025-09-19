@@ -8,37 +8,45 @@ export default function AdminLogin({ onLogin }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleLogin = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
+const handleLogin = async (e) => {
+  e.preventDefault()
+  setIsLoading(true)
+  setError('')
 
-    try {
-      const { data: admin } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('username', credentials.username)
-        .single()
+  try {
+    console.log('Attempting login with:', credentials.username)
+    
+    const { data: admin, error: queryError } = await supabase
+      .from('admins')
+      .select('*')
+      .eq('username', credentials.username)
+      .single()
 
-      if (!admin) {
-        throw new Error('Invalid credentials')
-      }
+    console.log('Query result:', admin, queryError)
 
-      const isValidPassword = await bcrypt.compare(credentials.password, admin.password_hash)
-
-      if (!isValidPassword) {
-        throw new Error('Invalid credentials')
-      }
-
-      // Store authentication token
-      localStorage.setItem('admin_token', `admin_${admin.id}`)
-      onLogin()
-    } catch (error) {
-      setError('Invalid username or password')
-    } finally {
-      setIsLoading(false)
+    if (!admin) {
+      throw new Error('Invalid credentials')
     }
+
+    console.log('Stored hash:', admin.password_hash)
+    console.log('Entered password:', credentials.password)
+    
+    const isValidPassword = await bcrypt.compare(credentials.password, admin.password_hash)
+    console.log('Password valid:', isValidPassword)
+    
+    if (!isValidPassword) {
+      throw new Error('Invalid credentials')
+    }
+
+    localStorage.setItem('admin_token', `admin_${admin.id}`)
+    onLogin()
+  } catch (error) {
+    console.error('Login error:', error)
+    setError('Invalid username or password')
+  } finally {
+    setIsLoading(false)
   }
+}
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12">

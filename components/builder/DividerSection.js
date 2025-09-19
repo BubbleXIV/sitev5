@@ -26,10 +26,15 @@ export default function DividerSection({
     )
   }
 
+  // For decorative style (line-dot-line)
   return (
     <div className="py-8">
       <div className="max-w-4xl mx-auto px-4 text-center">
         <div className="flex items-center">
+          <div className={`flex-1 ${thicknessClasses[thickness]} ${colorClasses[color]}`}></div>
+          <div className="px-4">
+            <div className="w-2 h-2 bg-nightshade-500 rounded-full"></div>
+          </div>
           <div className={`flex-1 ${thicknessClasses[thickness]} ${colorClasses[color]}`}></div>
         </div>
       </div>

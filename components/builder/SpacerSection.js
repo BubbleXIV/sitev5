@@ -1,4 +1,3 @@
-'use client'
 export default function SpacerSection({ height = 'medium' }) {
   const heightClasses = {
     small: 'h-8',

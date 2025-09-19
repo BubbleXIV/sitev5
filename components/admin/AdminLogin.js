@@ -8,39 +8,30 @@ export default function AdminLogin({ onLogin }) {
   const [credentials, setCredentials] = useState({ username: '', password: '' })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-
 const handleLogin = async (e) => {
-  console.log('LOGIN FUNCTION CALLED') // Add this first
   e.preventDefault()
   setIsLoading(true)
   setError('')
 
   try {
-    console.log('Attempting login with:', credentials.username)
-    
-    const { data: admin, error: queryError } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('username', credentials.username)
-      .single()
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: credentials.username,
+        password: credentials.password
+      })
+    })
 
-    console.log('Query result:', admin, queryError)
+    const data = await response.json()
 
-    if (!admin) {
-      throw new Error('Invalid credentials')
+    if (!response.ok) {
+      throw new Error(data.message || 'Login failed')
     }
 
-    console.log('Stored hash:', admin.password_hash)
-    console.log('Entered password:', credentials.password)
-    
-    const isValidPassword = await bcrypt.compare(credentials.password, admin.password_hash)
-    console.log('Password valid:', isValidPassword)
-    
-    if (!isValidPassword) {
-      throw new Error('Invalid credentials')
-    }
-
-    localStorage.setItem('admin_token', `admin_${admin.id}`)
+    localStorage.setItem('admin_token', data.token)
     onLogin()
   } catch (error) {
     console.error('Login error:', error)

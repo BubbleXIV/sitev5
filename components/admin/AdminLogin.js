@@ -3,12 +3,14 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import bcrypt from 'bcryptjs'
 
+
 export default function AdminLogin({ onLogin }) {
   const [credentials, setCredentials] = useState({ username: '', password: '' })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
 const handleLogin = async (e) => {
+  console.log('LOGIN FUNCTION CALLED') // Add this first
   e.preventDefault()
   setIsLoading(true)
   setError('')

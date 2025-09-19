@@ -9,22 +9,28 @@ export default async function handler(req, res) {
 
   const { username, password } = req.body
 
-  try {
-    const { data: admin, error } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('username', username)
-      .single()
+try {
+  console.log('API: Received login attempt for:', username)
+  
+  const { data: admin, error } = await supabase
+    .from('admins')
+    .select('*')
+    .eq('username', username)
+    .single()
 
-    if (error || !admin) {
-      return res.status(401).json({ message: 'Invalid credentials' })
-    }
+  console.log('API: Found admin:', admin ? 'YES' : 'NO', error)
 
-    const isValidPassword = await bcrypt.compare(password, admin.password_hash)
+  if (error || !admin) {
+    return res.status(401).json({ message: 'Invalid credentials' })
+  }
 
-    if (!isValidPassword) {
-      return res.status(401).json({ message: 'Invalid credentials' })
-    }
+  console.log('API: Comparing passwords...')
+  const isValidPassword = await bcrypt.compare(password, admin.password_hash)
+  console.log('API: Password valid:', isValidPassword)
+  
+  if (!isValidPassword) {
+    return res.status(401).json({ message: 'Invalid credentials' })
+  }
 
     const token = jwt.sign(
       { adminId: admin.id, username: admin.username },

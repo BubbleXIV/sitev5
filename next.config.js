@@ -3,20 +3,11 @@ const nextConfig = {
   images: {
     domains: [
       'your-supabase-project.supabase.co',
-      // Add other domains as needed
+      // Add your actual Supabase project URL here
     ],
   },
-  experimental: {
-    appDir: true,
-  },
-  // Ensure webpack can resolve the aliases
-  webpack: (config) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': require('path').resolve(__dirname),
-    }
-    return config
-  },
+  // Remove the experimental.appDir - it's not needed in Next.js 14
+  // Remove the custom webpack config unless you specifically need it
 }
 
 module.exports = nextConfig

@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+
+  .glass-dark {
+    @apply bg-black/20 backdrop-blur-md border border-white/10;
+  }
+
+  .btn-primary {
+    @apply px-6 py-3 bg-gradient-to-r from-nightshade-600 to-purple-600 hover:from-nightshade-700 hover:to-purple-700 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 glass hover:bg-white/20 rounded-lg transition-all duration-300 border border-nightshade-500/50 hover:border-nightshade-400;
+  }
+
+  .card {
+    @apply glass-dark rounded-xl p-6 hover:bg-white/5 transition-all duration-300 hover:transform hover:scale-105;
+  }
+}

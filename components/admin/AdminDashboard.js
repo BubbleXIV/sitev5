@@ -16,6 +16,7 @@ import StaffManager from '@/components/admin/StaffManager'
 import MenuManager from '@/components/admin/MenuManager'
 import PageManager from '@/components/admin/PageManager'
 import AdminManager from '@/components/admin/AdminManager'
+import ShadecardManager from '@/components/admin/ShadecardManager'
 
 export default function AdminDashboard({ onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -36,6 +37,7 @@ export default function AdminDashboard({ onLogout }) {
         supabase.from('pages').select('id').then(({ data }) => data?.length || 0),
         supabase.from('staff').select('id').then(({ data }) => data?.length || 0),
         supabase.from('menu_items').select('id').then(({ data }) => data?.length || 0),
+        supabase.from('shadecard_riddles').select('id').then(({ data }) => data?.length || 0)
         supabase.from('admins').select('id').then(({ data }) => data?.length || 0)
       ])
 
@@ -43,7 +45,8 @@ export default function AdminDashboard({ onLogout }) {
         totalPages: pages,
         totalStaff: staff,
         totalMenuItems: menuItems,
-        totalAdmins: admins
+        totalAdmins: admins,
+        totalShadecards: shadecards
       })
     } catch (error) {
       console.error('Error fetching stats:', error)
@@ -61,6 +64,7 @@ export default function AdminDashboard({ onLogout }) {
     { id: 'staff', label: 'Staff', icon: Users },
     { id: 'menu', label: 'Menu', icon: MenuIcon },
     { id: 'admins', label: 'Admins', icon: Settings },
+    { id: 'shadecard', label: 'Shadecard', icon: Settings }, 
   ]
 
   const renderTabContent = () => {
@@ -75,6 +79,8 @@ export default function AdminDashboard({ onLogout }) {
         return <MenuManager />
       case 'admins':
         return <AdminManager />
+      case 'shadecard':
+        return <ShadecardManager /> 
       default:
         return <DashboardOverview stats={stats} />
     }
@@ -141,6 +147,7 @@ function DashboardOverview({ stats }) {
     { label: 'Total Pages', value: stats.totalPages, icon: FileText, color: 'from-blue-500 to-blue-600' },
     { label: 'Staff Members', value: stats.totalStaff, icon: Users, color: 'from-green-500 to-green-600' },
     { label: 'Menu Items', value: stats.totalMenuItems, icon: MenuIcon, color: 'from-purple-500 to-purple-600' },
+    { label: 'Shadecards', value: stats.totalShadecards || 0, icon: Settings, color: 'from-yellow-500 to-yellow-600' },
     { label: 'Administrators', value: stats.totalAdmins, icon: Settings, color: 'from-red-500 to-red-600' },
   ]
 

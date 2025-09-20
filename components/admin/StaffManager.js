@@ -3,11 +3,6 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Plus, Edit, Trash2, User, ChevronDown, ChevronUp } from 'lucide-react'
 import ImageUpload from '@/components/ImageUpload'
-import Button from '@/components/ui/Button'
-import Input from '@/components/ui/Input'
-import Card from '@/components/ui/Card'
-import Modal from '@/components/ui/Modal'
-import { validateStaffForm } from '@/lib/validations'
 
 export default function StaffManager() {
   const [staff, setStaff] = useState([])
@@ -23,7 +18,7 @@ export default function StaffManager() {
 
   const fetchStaff = async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('staff')
         .select(`
           *,
@@ -31,9 +26,12 @@ export default function StaffManager() {
         `)
         .order('sort_order')
 
+      if (error) throw error
+      console.log('Fetched staff data:', data)
       setStaff(data || [])
     } catch (error) {
       console.error('Error fetching staff:', error)
+      alert('Error loading staff data: ' + error.message)
     } finally {
       setLoading(false)
     }
@@ -42,22 +40,32 @@ export default function StaffManager() {
   const handleSave = async (staffData, altsData = []) => {
     setSaving(true)
     try {
+      console.log('Saving staff:', staffData)
+      console.log('Saving alts:', altsData)
+      
       let staffId = currentStaff?.id
 
       if (staffId) {
         // Update existing staff
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('staff')
           .update(staffData)
           .eq('id', staffId)
+          .select()
 
         if (error) throw error
+        console.log('Staff updated:', data)
 
-        // Delete existing alts
-        await supabase
+        // Delete existing alts first
+        const { error: deleteError } = await supabase
           .from('staff_alts')
           .delete()
           .eq('staff_id', staffId)
+
+        if (deleteError) {
+          console.error('Error deleting old alts:', deleteError)
+          // Continue anyway, might be no existing alts
+        }
       } else {
         // Create new staff
         const { data, error } = await supabase
@@ -67,6 +75,7 @@ export default function StaffManager() {
           .single()
 
         if (error) throw error
+        console.log('Staff created:', data)
         staffId = data.id
       }
 
@@ -78,11 +87,13 @@ export default function StaffManager() {
           sort_order: index
         }))
 
-        const { error: altsError } = await supabase
+        const { data: altData, error: altsError } = await supabase
           .from('staff_alts')
           .insert(altsToInsert)
+          .select()
 
         if (altsError) throw altsError
+        console.log('Alts inserted:', altData)
       }
 
       await fetchStaff()
@@ -131,12 +142,12 @@ export default function StaffManager() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
+            <div key={i} className="card animate-pulse">
               <div className="w-full h-48 bg-white/10 rounded-lg mb-4"></div>
               <div className="h-6 bg-white/10 rounded mb-2"></div>
               <div className="h-4 bg-white/10 rounded mb-4 w-2/3"></div>
               <div className="h-16 bg-white/10 rounded"></div>
-            </Card>
+            </div>
           ))}
         </div>
       </div>
@@ -147,21 +158,21 @@ export default function StaffManager() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Staff Management</h2>
-        <Button
+        <button
           onClick={() => {
             setCurrentStaff(null)
             setIsEditing(true)
           }}
-          className="flex items-center space-x-2"
+          className="btn-primary flex items-center space-x-2"
         >
           <Plus size={20} />
           <span>Add Staff Member</span>
-        </Button>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {staff.map((member) => (
-          <Card key={member.id} hover className="relative">
+          <div key={member.id} className="card relative">
             {member.image_url ? (
               <img
                 src={member.image_url}
@@ -192,7 +203,7 @@ export default function StaffManager() {
                 </p>
               )}
 
-              {member.staff_alts && member.staff_alts.length > 0 && (
+              {member.show_alts && member.staff_alts && member.staff_alts.length > 0 && (
                 <div className="pt-2 border-t border-white/10">
                   <button
                     onClick={() => toggleExpanded(member.id)}
@@ -204,8 +215,10 @@ export default function StaffManager() {
 
                   {expandedStaff[member.id] && (
                     <div className="mt-3 space-y-2">
-                      {member.staff_alts.map((alt, index) => (
-                        <div key={alt.id} className="p-3 bg-white/5 rounded-lg border border-white/10">
+                      {member.staff_alts
+                        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+                        .map((alt, index) => (
+                        <div key={alt.id || index} className="p-3 bg-white/5 rounded-lg border border-white/10">
                           <div className="flex items-center space-x-3">
                             {alt.image_url ? (
                               <img
@@ -236,63 +249,60 @@ export default function StaffManager() {
               )}
 
               <div className="flex space-x-2 pt-3">
-                <Button
+                <button
                   onClick={() => {
                     setCurrentStaff(member)
                     setIsEditing(true)
                   }}
-                  variant="secondary"
-                  size="small"
-                  className="flex-1"
+                  className="flex-1 btn-secondary text-sm"
                 >
                   <Edit size={16} className="mr-1" />
                   Edit
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={() => handleDelete(member.id)}
-                  variant="danger"
-                  size="small"
-                  className="px-3"
+                  className="px-3 py-2 bg-red-600 hover:bg-red-700 rounded text-sm"
                 >
                   <Trash2 size={16} />
-                </Button>
+                </button>
               </div>
             </div>
-          </Card>
+          </div>
         ))}
       </div>
 
       {staff.length === 0 && (
-        <Card className="text-center py-12">
+        <div className="card text-center py-12">
           <User size={48} className="mx-auto text-gray-400 mb-4" />
           <h3 className="text-xl font-semibold text-white mb-2">No Staff Members</h3>
           <p className="text-gray-400 mb-6">Get started by adding your first staff member.</p>
-          <Button onClick={() => setIsEditing(true)}>
+          <button 
+            onClick={() => setIsEditing(true)}
+            className="btn-primary"
+          >
             Add Your First Staff Member
-          </Button>
-        </Card>
+          </button>
+        </div>
       )}
 
       {/* Staff Form Modal */}
-      <Modal
-        isOpen={isEditing}
-        onClose={() => {
-          setIsEditing(false)
-          setCurrentStaff(null)
-        }}
-        title={currentStaff ? 'Edit Staff Member' : 'Add Staff Member'}
-        size="large"
-      >
-        <StaffForm
-          staff={currentStaff}
-          onSave={handleSave}
-          onCancel={() => {
-            setIsEditing(false)
-            setCurrentStaff(null)
-          }}
-          saving={saving}
-        />
-      </Modal>
+      {isEditing && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <StaffForm
+                staff={currentStaff}
+                onSave={handleSave}
+                onCancel={() => {
+                  setIsEditing(false)
+                  setCurrentStaff(null)
+                }}
+                saving={saving}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -314,23 +324,29 @@ function StaffForm({ staff, onSave, onCancel, saving }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-
-    const validation = validateStaffForm(formData)
-    if (!validation.isValid) {
-      setErrors(validation.errors)
+    
+    // Basic validation
+    if (!formData.name.trim()) {
+      alert('Staff name is required')
+      return
+    }
+    
+    if (!formData.role.trim()) {
+      alert('Staff role is required')
       return
     }
 
-    // Validate alts
-    const altErrors = alts.map(alt => validateStaffForm(alt))
-    const hasAltErrors = altErrors.some(result => !result.isValid)
-
-    if (hasAltErrors) {
-      alert('Please fix errors in alternate characters')
-      return
+    // Validate alts if show_alts is enabled
+    if (formData.show_alts) {
+      const validAlts = alts.filter(alt => alt.name.trim() && alt.role.trim())
+      if (alts.length !== validAlts.length) {
+        alert('All alt characters must have a name and role')
+        return
+      }
+      onSave(formData, validAlts)
+    } else {
+      onSave(formData, [])
     }
-
-    onSave(formData, alts)
   }
 
   const addAlt = () => {
@@ -352,149 +368,197 @@ function StaffForm({ staff, onSave, onCancel, saving }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Input
-          label="Name"
-          value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          error={errors.name}
-          required
-        />
-        <Input
-          label="Role"
-          value={formData.role}
-          onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-          error={errors.role}
-          required
-        />
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-xl font-bold text-white">
+          {staff ? 'Edit Staff Member' : 'Add Staff Member'}
+        </h3>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-gray-400 hover:text-white"
+        >
+          ✕
+        </button>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
-        <textarea
-          value={formData.bio}
-          onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-          rows={3}
-          className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-nightshade-500 focus:border-transparent resize-none"
-          placeholder="Tell us about this staff member..."
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Profile Image</label>
-        <ImageUpload
-          currentImage={formData.image_url}
-          onImageUploaded={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Input
-          label="Special Role (Optional)"
-          value={formData.special_role}
-          onChange={(e) => setFormData(prev => ({ ...prev, special_role: e.target.value }))}
-          placeholder="e.g., Key Keeper, Manager"
-        />
-        <Input
-          label="Sort Order"
-          type="number"
-          value={formData.sort_order}
-          onChange={(e) => setFormData(prev => ({ ...prev, sort_order: parseInt(e.target.value) || 0 }))}
-          min="0"
-        />
-      </div>
-
-      <div className="flex items-center space-x-3">
-        <input
-          type="checkbox"
-          id="show_alts"
-          checked={formData.show_alts}
-          onChange={(e) => setFormData(prev => ({ ...prev, show_alts: e.target.checked }))}
-          className="rounded border-white/20 bg-white/10 text-nightshade-500 focus:ring-nightshade-500"
-        />
-        <label htmlFor="show_alts" className="text-gray-300">
-          Enable alternate characters
-        </label>
-      </div>
-
-      {formData.show_alts && (
-        <Card padding="default">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="text-lg font-medium text-white">Alternate Characters</h4>
-            <Button
-              type="button"
-              onClick={addAlt}
-              disabled={alts.length >= 5}
-              variant="secondary"
-              size="small"
-            >
-              Add Alt ({alts.length}/5)
-            </Button>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Name *
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-nightshade-500"
+              required
+            />
           </div>
-
-          <div className="space-y-4">
-            {alts.map((alt, index) => (
-              <div key={index} className="p-4 border border-white/20 rounded-lg space-y-4">
-                <div className="flex justify-between items-center">
-                  <h5 className="font-medium text-nightshade-300">Alt Character {index + 1}</h5>
-                  <Button
-                    type="button"
-                    onClick={() => removeAlt(index)}
-                    variant="danger"
-                    size="small"
-                  >
-                    <Trash2 size={16} />
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    label="Alt Name"
-                    value={alt.name}
-                    onChange={(e) => updateAlt(index, 'name', e.target.value)}
-                    required
-                  />
-                  <Input
-                    label="Alt Role"
-                    value={alt.role}
-                    onChange={(e) => updateAlt(index, 'role', e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Alt Bio</label>
-                  <textarea
-                    value={alt.bio}
-                    onChange={(e) => updateAlt(index, 'bio', e.target.value)}
-                    rows={2}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 resize-none"
-                    placeholder="Alt character bio..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Alt Image</label>
-                  <ImageUpload
-                    currentImage={alt.image_url}
-                    onImageUploaded={(url) => updateAlt(index, 'image_url', url)}
-                  />
-                </div>
-              </div>
-            ))}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Role *
+            </label>
+            <input
+              type="text"
+              value={formData.role}
+              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-nightshade-500"
+              required
+            />
           </div>
-        </Card>
-      )}
+        </div>
 
-      <div className="flex justify-end space-x-4 pt-6">
-        <Button type="button" onClick={onCancel} variant="secondary">
-          Cancel
-        </Button>
-        <Button type="submit" loading={saving}>
-          {staff ? 'Update' : 'Create'} Staff Member
-        </Button>
-      </div>
-    </form>
-  )
-}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
+          <textarea
+            value={formData.bio}
+            onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+            rows={3}
+            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-nightshade-500 resize-none"
+            placeholder="Tell us about this staff member..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Profile Image</label>
+          <ImageUpload
+            currentImage={formData.image_url}
+            onImageUploaded={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Special Role (Optional)
+            </label>
+            <input
+              type="text"
+              value={formData.special_role}
+              onChange={(e) => setFormData(prev => ({ ...prev, special_role: e.target.value }))}
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-nightshade-500"
+              placeholder="e.g., Key Keeper, Manager"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Sort Order
+            </label>
+            <input
+              type="number"
+              value={formData.sort_order}
+              onChange={(e) => setFormData(prev => ({ ...prev, sort_order: parseInt(e.target.value) || 0 }))}
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-nightshade-500"
+              min="0"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <input
+            type="checkbox"
+            id="show_alts"
+            checked={formData.show_alts}
+            onChange={(e) => setFormData(prev => ({ ...prev, show_alts: e.target.checked }))}
+            className="rounded border-white/20 bg-white/10 text-nightshade-500 focus:ring-nightshade-500"
+          />
+          <label htmlFor="show_alts" className="text-gray-300">
+            Enable alternate characters
+          </label>
+        </div>
+
+        {formData.show_alts && (
+          <div className="card bg-white/5">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-lg font-medium text-white">Alternate Characters</h4>
+              <button
+                type="button"
+                onClick={addAlt}
+                disabled={alts.length >= 5}
+                className="btn-secondary text-sm"
+              >
+                Add Alt ({alts.length}/5)
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {alts.map((alt, index) => (
+                <div key={index} className="p-4 border border-white/20 rounded-lg space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h5 className="font-medium text-nightshade-300">Alt Character {index + 1}</h5>
+                    <button
+                      type="button"
+                      onClick={() => removeAlt(index)}
+                      className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Alt Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={alt.name}
+                        onChange={(e) => updateAlt(index, 'name', e.target.value)}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Alt Role *
+                      </label>
+                      <input
+                        type="text"
+                        value={alt.role}
+                        onChange={(e) => updateAlt(index, 'role', e.target.value)}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Alt Bio</label>
+                    <textarea
+                      value={alt.bio}
+                      onChange={(e) => updateAlt(index, 'bio', e.target.value)}
+                      rows={2}
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white placeholder-gray-400 resize-none"
+                      placeholder="Alt character bio..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Alt Image</label>
+                    <ImageUpload
+                      currentImage={alt.image_url}
+                      onImageUploaded={(url) => updateAlt(index, 'image_url', url)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end space-x-4 pt-6">
+          <button type="button" onClick={onCancel} className="btn-secondary">
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            disabled={saving}
+            className="btn-primary disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : (staff ? 'Update' : 'Create') + ' Staff Member'}
+          </button>
+        </div>
+      </form>
+    </div>

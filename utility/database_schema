@@ -104,3 +104,49 @@ values ('admin', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi')
 insert into public.pages (title, slug, is_staff_page, sort_order) values ('Home', 'home', false, 0);
 insert into public.pages (title, slug, is_staff_page, sort_order) values ('Staff', 'staff', true, 1);
 insert into public.pages (title, slug, is_menu_page, sort_order) values ('Menu', 'menu', true, 2);
+
+-- Updated Database Schema - Run this in Supabase SQL Editor
+CREATE TABLE public.shadecard_riddles (
+  id uuid default gen_random_uuid() primary key,
+  title text not null,
+  slug text unique not null,
+  intro_text text not null,
+  venue_logo text, -- URL to logo image
+  riddles jsonb not null, -- Array of riddle objects
+  final_password text not null,
+  is_active boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- Insert sample data
+INSERT INTO public.shadecard_riddles (title, slug, intro_text, riddles, final_password, is_active)
+VALUES (
+  'The Nightshade Mystery',
+  'nightshade-mystery',
+  'Welcome, adventurer. The secrets of the realm await those clever enough to uncover them...',
+  '[
+    {
+      "text": "I bloom in darkness, yet bring light to the lost. What am I?",
+      "rpText": "The first clue whispers through the shadows..."
+    },
+    {
+      "text": "In the realm where crystals sing, I am the silence between notes. What am I?",
+      "rpText": "The melody grows clearer, but something is missing..."
+    },
+    {
+      "text": "I am the door that is never locked, yet few dare to enter. What am I?",
+      "rpText": "The path reveals itself to those who truly see..."
+    },
+    {
+      "text": "In the dance of fate, I am both the music and the silence. What am I?",
+      "rpText": "The final truth lies within your grasp..."
+    }
+  ]',
+  'MYSTERY',
+  true
+);
+
+-- Add RLS policies
+CREATE POLICY "Enable read access for all users" ON public.shadecard_riddles FOR SELECT USING (true);
+CREATE POLICY "Enable all access for authenticated users" ON public.shadecard_riddles FOR ALL USING (auth.role() = 'authenticated');

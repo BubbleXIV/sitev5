@@ -13,12 +13,33 @@ export default function AdminPage() {
     checkAuth()
   }, [])
 
-  const checkAuth = () => {
+  const checkAuth = async () => {
     const token = localStorage.getItem('admin_token')
-    if (token) {
-      // Verify token with your backend
-      setIsAuthenticated(true)
+    if (!token) {
+      setLoading(false)
+      return
     }
+
+    try {
+      const response = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token })
+      })
+
+      if (response.ok) {
+        setIsAuthenticated(true)
+      } else {
+        // Invalid token, remove it
+        localStorage.removeItem('admin_token')
+      }
+    } catch (error) {
+      console.error('Auth check error:', error)
+      localStorage.removeItem('admin_token')
+    }
+    
     setLoading(false)
   }
 
@@ -33,7 +54,10 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen">
       {isAuthenticated ? (
-        <AdminDashboard onLogout={() => setIsAuthenticated(false)} />
+        <AdminDashboard onLogout={() => {
+          localStorage.removeItem('admin_token')
+          setIsAuthenticated(false)
+        }} />
       ) : (
         <AdminLogin onLogin={() => setIsAuthenticated(true)} />
       )}

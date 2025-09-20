@@ -4,10 +4,10 @@ import ImageUpload from '@/components/ImageUpload'
 
 export default function BackgroundImageSection({
   backgroundImage = '',
-  overlayOpacity = 0.7,
+  overlayOpacity = 0.6,
   overlayColor = 'black',
   minHeight = 'min-h-screen',
-  children = [],
+  animation = 'fade-in',
   isEditing = false,
   onUpdate
 }) {
@@ -18,24 +18,31 @@ export default function BackgroundImageSection({
 
   return (
     <motion.div 
-      className={`relative ${minHeight} flex items-center justify-center bg-cover bg-center bg-no-repeat`}
+      className={`relative ${minHeight} bg-cover bg-center bg-no-repeat`}
       style={backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {}}
       initial="hidden"
       animate="visible"
       variants={{
-        visible: animations['fade-in']
+        visible: animations[animation] || animations['fade-in']
       }}
     >
       {/* Overlay */}
       <div 
-        className={`absolute inset-0 bg-${overlayColor}`}
-        style={{ opacity: overlayOpacity }}
+        className={`absolute inset-0`}
+        style={{ 
+          backgroundColor: overlayColor === 'black' ? '#000000' : 
+                           overlayColor === 'nightshade' ? '#350f6a' : 
+                           overlayColor === 'purple' ? '#581c87' : '#000000',
+          opacity: overlayOpacity 
+        }}
       ></div>
       
       {/* Content */}
-      <div className="relative z-10 w-full">
+      <div className="relative z-10 w-full h-full flex items-center justify-center">
         {isEditing ? (
-          <div className="space-y-4 p-8">
+          <div className="space-y-4 p-8 bg-black/50 rounded-lg max-w-md">
+            <h3 className="text-white font-bold">Background Settings</h3>
+            
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Background Image
@@ -48,7 +55,7 @@ export default function BackgroundImageSection({
             
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Overlay Opacity: {overlayOpacity}
+                Overlay Opacity: {Math.round(overlayOpacity * 100)}%
               </label>
               <input
                 type="range"
@@ -71,21 +78,17 @@ export default function BackgroundImageSection({
                 className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
               >
                 <option value="black">Black</option>
-                <option value="gray-900">Dark Gray</option>
-                <option value="nightshade-900">Nightshade</option>
-                <option value="purple-900">Purple</option>
+                <option value="nightshade">Nightshade</option>
+                <option value="purple">Purple</option>
               </select>
             </div>
 
-            <div className="border-2 border-dashed border-white/50 p-4 rounded-lg">
-              <p className="text-gray-300">
-                Add other page builder elements above or below this background section to overlay content.
-              </p>
-            </div>
+            <p className="text-xs text-gray-400 mt-4">
+              Add other elements above this section to overlay content on the background.
+            </p>
           </div>
         ) : (
-          // This section provides the background, other elements will be layered
-          backgroundImage ? null : (
+          !backgroundImage && (
             <div className="text-center text-gray-400 p-8">
               <p>Add a background image to get started</p>
             </div>

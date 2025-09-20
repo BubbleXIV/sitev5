@@ -2,6 +2,9 @@
 import { useState, useEffect } from 'react'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 import { motion } from 'framer-motion'
+import BackgroundImageSection from '@/components/builder/BackgroundImageSection'
+import FloatingTextSection from '@/components/builder/FloatingTextSection'
+import FloatingButtonSection from '@/components/builder/FloatingButtonSection'
 
 // Import all page builder components
 import HeroSection from '@/components/builder/HeroSection'
@@ -27,6 +30,8 @@ const componentMap = {
   divider: DividerSection,
   testimonial: TestimonialSection,
   backgroundImage: BackgroundImageSection,
+  floatingText: FloatingTextSection,
+  floatingButton: FloatingButtonSection,
 }
 
 export default function PageBuilder({ content, isEditable = false, onSave }) {
@@ -145,7 +150,36 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         role: '',
         avatar: '',
         animation: 'fade-in'
-      }
+      },
+      backgroundImage: {
+      backgroundImage: '',
+      overlayOpacity: 0.6,
+      overlayColor: 'black',
+      minHeight: 'min-h-screen',
+      animation: 'fade-in'
+    },
+    floatingText: {
+      content: 'Floating Text',
+      fontSize: 'text-2xl',
+      textAlign: 'center',
+      textColor: 'text-white',
+      backgroundColor: 'bg-black/50',
+      padding: 'px-6 py-3',
+      borderRadius: 'rounded-lg',
+      position: { x: 50, y: 50 },
+      animation: 'fade-in'
+    },
+    floatingButton: {
+      text: 'Floating Button',
+      link: '#',
+      style: 'primary',
+      size: 'medium',
+      position: { x: 50, y: 50 },
+      animation: 'fade-in'
+    }
+  }
+  return defaults[type] || {}
+}
     }
     return defaults[type] || {}
   }
@@ -249,6 +283,9 @@ function ElementToolbar({ onAddElement }) {
     { type: 'text', label: 'Text Block', icon: '📝' },
     { type: 'image', label: 'Image', icon: '🖼️' },
     { type: 'button', label: 'Button', icon: '🔘' },
+    { type: 'backgroundImage', label: 'Background Image', icon: '🌄' },
+    { type: 'floatingText', label: 'Floating Text', icon: '💭' },
+    { type: 'floatingButton', label: 'Floating Button', icon: '🎈' },
     { type: 'gallery', label: 'Gallery', icon: '🖼️' },
     { type: 'video', label: 'Video', icon: '🎥' },
     { type: 'contact', label: 'Contact Form', icon: '📋' },

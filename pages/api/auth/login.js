@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import crypto from 'crypto'
+import jwt from 'jsonwebtoken'
 
 export default async function handler(req, res) {
   console.log('Login attempt started')
@@ -38,9 +39,19 @@ export default async function handler(req, res) {
       return res.status(401).json({ message: 'Invalid credentials' })
     }
 
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        id: admin.id, 
+        username: admin.username,
+        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24) // 24 hours
+      },
+      process.env.NEXTAUTH_SECRET
+    )
+
     console.log('Login successful')
     res.status(200).json({ 
-      token: `admin_${admin.id}`, 
+      token, 
       admin: { id: admin.id, username: admin.username } 
     })
   } catch (error) {

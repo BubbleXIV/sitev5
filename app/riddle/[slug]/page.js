@@ -144,3 +144,73 @@ export default function RiddleCard({ params }) {
     </div>
   )
 }
+
+// Glitch Card Component
+function GlitchCard({ onClick, content, logo, isPassword, isClickable }) {
+  return (
+    <div 
+      className={`relative group ${isClickable ? 'cursor-pointer' : ''}`}
+      onClick={isClickable ? onClick : undefined}
+    >
+      {/* Main Card */}
+      <div className="relative bg-black border border-gray-800 rounded-lg p-12 min-w-[400px] min-h-[300px] flex flex-col items-center justify-center space-y-6 overflow-hidden">
+        
+        {/* Glitch Border Effects */}
+        <div className="absolute inset-0 rounded-lg overflow-hidden">
+          {/* Top edge glitch */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-glitch-horizontal"></div>
+          
+          {/* Bottom edge glitch */}
+          <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-pink-400 to-transparent animate-glitch-horizontal-reverse"></div>
+          
+          {/* Left edge glitch */}
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-transparent via-green-400 to-transparent animate-glitch-vertical"></div>
+          
+          {/* Right edge glitch */}
+          <div className="absolute right-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-transparent via-yellow-400 to-transparent animate-glitch-vertical-reverse"></div>
+          
+          {/* Corner glitches */}
+          <div className="absolute top-0 left-0 w-4 h-4 bg-red-400 opacity-30 animate-pulse"></div>
+          <div className="absolute top-0 right-0 w-4 h-4 bg-blue-400 opacity-30 animate-pulse"></div>
+          <div className="absolute bottom-0 left-0 w-4 h-4 bg-green-400 opacity-30 animate-pulse"></div>
+          <div className="absolute bottom-0 right-0 w-4 h-4 bg-purple-400 opacity-30 animate-pulse"></div>
+        </div>
+
+        {/* Logo */}
+        {logo && (
+          <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center overflow-hidden">
+            <img src={logo} alt="Venue Logo" className="w-full h-full object-cover" />
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="text-center space-y-4 relative z-10">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={content}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5 }}
+            >
+              {isPassword ? (
+                <div className="text-4xl font-bold text-green-400 tracking-widest animate-pulse">
+                  {content}
+                </div>
+              ) : (
+                <div className="text-white text-lg max-w-xs leading-relaxed">
+                  {content}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Hover effect for clickable state */}
+        {isClickable && (
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
+        )}
+      </div>
+    </div>
+  )
+}

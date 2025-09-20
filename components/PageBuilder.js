@@ -26,6 +26,7 @@ const componentMap = {
   spacer: SpacerSection,
   divider: DividerSection,
   testimonial: TestimonialSection,
+  backgroundImage: BackgroundImageSection,
 }
 
 export default function PageBuilder({ content, isEditable = false, onSave }) {

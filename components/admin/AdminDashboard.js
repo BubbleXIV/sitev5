@@ -33,7 +33,7 @@ export default function AdminDashboard({ onLogout }) {
 
   const fetchStats = async () => {
     try {
-      const [pages, staff, menuItems, admins] = await Promise.all([
+      const [pages, staff, menuItems, shadecards admins] = await Promise.all([
         supabase.from('pages').select('id').then(({ data }) => data?.length || 0),
         supabase.from('staff').select('id').then(({ data }) => data?.length || 0),
         supabase.from('menu_items').select('id').then(({ data }) => data?.length || 0),

@@ -23,7 +23,7 @@ export default function RiddleCard({ params }) {
   const fetchRiddle = async () => {
     try {
       const { data, error } = await supabase
-        .from('riddle_cards')
+        .from('shadecard_riddles')
         .select('*')
         .eq('slug', params.slug)
         .eq('is_active', true)

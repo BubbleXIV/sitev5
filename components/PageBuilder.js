@@ -179,6 +179,8 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
     }
   }
   return defaults[type] || {}
+}
+  
   return (
     <div className="min-h-screen">
       {isEditable && (

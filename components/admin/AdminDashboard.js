@@ -37,7 +37,7 @@ export default function AdminDashboard({ onLogout }) {
         supabase.from('pages').select('id').then(({ data }) => data?.length || 0),
         supabase.from('staff').select('id').then(({ data }) => data?.length || 0),
         supabase.from('menu_items').select('id').then(({ data }) => data?.length || 0),
-        supabase.from('shadecard_riddles').select('id').then(({ data }) => data?.length || 0)
+        supabase.from('shadecard_riddles').select('id').then(({ data }) => data?.length || 0),
         supabase.from('admins').select('id').then(({ data }) => data?.length || 0)
       ])
 

@@ -18,7 +18,7 @@ export default function MenuManager() {
 
   const fetchCategories = async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('menu_categories')
         .select(`
           *,
@@ -26,9 +26,15 @@ export default function MenuManager() {
         `)
         .order('sort_order')
 
+      if (error) {
+        console.error('Supabase error:', error)
+        throw error
+      }
+
       setCategories(data || [])
     } catch (error) {
       console.error('Error fetching categories:', error)
+      alert('Error loading menu data: ' + error.message)
     } finally {
       setLoading(false)
     }
@@ -36,53 +42,79 @@ export default function MenuManager() {
 
   const handleSaveCategory = async (categoryData) => {
     try {
+      console.log('Saving category:', categoryData)
+      
       if (currentCategory?.id) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('menu_categories')
           .update(categoryData)
           .eq('id', currentCategory.id)
+          .select()
 
         if (error) throw error
+        console.log('Category updated:', data)
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('menu_categories')
           .insert([categoryData])
+          .select()
 
         if (error) throw error
+        console.log('Category created:', data)
       }
 
       await fetchCategories()
       setIsEditingCategory(false)
       setCurrentCategory(null)
+      alert('Category saved successfully!')
     } catch (error) {
       console.error('Error saving category:', error)
-      alert('Error saving category')
+      alert('Error saving category: ' + error.message)
     }
   }
 
   const handleSaveItem = async (itemData) => {
     try {
+      console.log('Saving item:', itemData)
+      
+      // Ensure required fields
+      if (!itemData.name || !itemData.category_id) {
+        alert('Name and Category are required')
+        return
+      }
+
+      const dataToSave = {
+        ...itemData,
+        price_gil: itemData.price_gil ? parseInt(itemData.price_gil) : null,
+        sort_order: itemData.sort_order || 0
+      }
+
       if (currentItem?.id) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('menu_items')
-          .update(itemData)
+          .update(dataToSave)
           .eq('id', currentItem.id)
+          .select()
 
         if (error) throw error
+        console.log('Item updated:', data)
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('menu_items')
-          .insert([itemData])
+          .insert([dataToSave])
+          .select()
 
         if (error) throw error
+        console.log('Item created:', data)
       }
 
       await fetchCategories()
       setIsEditingItem(false)
       setCurrentItem(null)
+      alert('Menu item saved successfully!')
     } catch (error) {
       console.error('Error saving item:', error)
-      alert('Error saving menu item')
+      alert('Error saving menu item: ' + error.message)
     }
   }
 
@@ -97,9 +129,10 @@ export default function MenuManager() {
 
       if (error) throw error
       await fetchCategories()
+      alert('Category deleted successfully!')
     } catch (error) {
       console.error('Error deleting category:', error)
-      alert('Error deleting category')
+      alert('Error deleting category: ' + error.message)
     }
   }
 
@@ -114,9 +147,10 @@ export default function MenuManager() {
 
       if (error) throw error
       await fetchCategories()
+      alert('Menu item deleted successfully!')
     } catch (error) {
       console.error('Error deleting item:', error)
-      alert('Error deleting menu item')
+      alert('Error deleting menu item: ' + error.message)
     }
   }
 
@@ -210,11 +244,15 @@ export default function MenuManager() {
                 )}
                 <div className="flex justify-between items-start mb-2">
                   <h4 className="font-semibold text-white">{item.name}</h4>
-                  <span className="text-purple-400 font-bold">
-                    {item.price_gil?.toLocaleString()} gil
-                  </span>
+                  {item.price_gil && (
+                    <span className="text-purple-400 font-bold">
+                      {item.price_gil.toLocaleString()} gil
+                    </span>
+                  )}
                 </div>
-                <p className="text-gray-300 text-sm mb-3">{item.description}</p>
+                {item.description && (
+                  <p className="text-gray-300 text-sm mb-3">{item.description}</p>
+                )}
                 <div className="flex space-x-2">
                   <button
                     onClick={() => {
@@ -236,7 +274,7 @@ export default function MenuManager() {
             ))}
           </div>
 
-          {category.menu_items?.length === 0 && (
+          {(!category.menu_items || category.menu_items.length === 0) && (
             <p className="text-gray-400 text-center py-8">No items in this category</p>
           )}
         </div>
@@ -266,7 +304,16 @@ function CategoryForm({ category, onSave, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSave(formData)
+    
+    if (!formData.name.trim()) {
+      alert('Category name is required')
+      return
+    }
+    
+    onSave({
+      ...formData,
+      sort_order: parseInt(formData.sort_order) || 0
+    })
   }
 
   return (
@@ -296,8 +343,9 @@ function CategoryForm({ category, onSave, onCancel }) {
           <input
             type="number"
             value={formData.sort_order}
-            onChange={(e) => setFormData(prev => ({ ...prev, sort_order: parseInt(e.target.value) }))}
+            onChange={(e) => setFormData(prev => ({ ...prev, sort_order: e.target.value }))}
             className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+            min="0"
           />
         </div>
 
@@ -327,9 +375,21 @@ function ItemForm({ item, categories, onSave, onCancel }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    
+    if (!formData.name.trim()) {
+      alert('Item name is required')
+      return
+    }
+    
+    if (!formData.category_id) {
+      alert('Please select a category')
+      return
+    }
+    
     onSave({
       ...formData,
-      price_gil: parseInt(formData.price_gil) || null
+      price_gil: formData.price_gil ? parseInt(formData.price_gil) : null,
+      sort_order: parseInt(formData.sort_order) || 0
     })
   }
 
@@ -350,6 +410,7 @@ function ItemForm({ item, categories, onSave, onCancel }) {
             className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
             required
           >
+            <option value="">Select a category</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -415,8 +476,9 @@ function ItemForm({ item, categories, onSave, onCancel }) {
           <input
             type="number"
             value={formData.sort_order}
-            onChange={(e) => setFormData(prev => ({ ...prev, sort_order: parseInt(e.target.value) }))}
+            onChange={(e) => setFormData(prev => ({ ...prev, sort_order: e.target.value }))}
             className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+            min="0"
           />
         </div>
 

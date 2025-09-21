@@ -34,7 +34,12 @@ export default function StaffPage() {
       const initialAlts = {}
       staffData?.forEach(member => {
         initialAlts[member.id] = -1 // -1 for main character
-        console.log(`Staff ${member.name} has ${member.staff_alts?.length || 0} alts, show_alts: ${member.show_alts}`)
+        console.log(`Staff ${member.name}:`, {
+          id: member.id,
+          show_alts: member.show_alts,
+          alts_count: member.staff_alts?.length || 0,
+          alts: member.staff_alts
+        })
       })
       
       setCurrentAlts(initialAlts)
@@ -47,6 +52,8 @@ export default function StaffPage() {
   }
 
   const cycleAlt = (staffId, direction) => {
+    console.log(`Cycling alt for staff ID: ${staffId}, direction: ${direction}`)
+    
     const member = staff.find(s => s.id === staffId)
     if (!member) {
       console.log('Member not found for ID:', staffId)
@@ -54,15 +61,15 @@ export default function StaffPage() {
     }
 
     const totalAlts = member.staff_alts?.length || 0
-    console.log(`Cycling alt for ${member.name}, total alts: ${totalAlts}, show_alts: ${member.show_alts}`)
+    console.log(`Staff ${member.name} has ${totalAlts} alts, show_alts: ${member.show_alts}`)
     
     // Only allow cycling if show_alts is enabled and there are alts
     if (!member.show_alts || totalAlts === 0) {
-      console.log('Alt cycling not available for this member')
+      console.log('Alt cycling not available - show_alts:', member.show_alts, 'totalAlts:', totalAlts)
       return
     }
 
-    const maxIndex = totalAlts - 1
+    const maxIndex = totalAlts - 1 // Last alt index
     const minIndex = -1 // -1 for main character
 
     const currentIndex = currentAlts[staffId] || -1
@@ -75,36 +82,48 @@ export default function StaffPage() {
     }
 
     console.log(`Changing from index ${currentIndex} to ${newIndex}`)
-    setCurrentAlts(prev => ({
-      ...prev,
-      [staffId]: newIndex
-    }))
+    
+    setCurrentAlts(prev => {
+      const updated = {
+        ...prev,
+        [staffId]: newIndex
+      }
+      console.log('Updated currentAlts:', updated)
+      return updated
+    })
   }
 
   const getCurrentCharacter = (member) => {
     const currentIndex = currentAlts[member.id] || -1
     
+    console.log(`Getting character for ${member.name}, index: ${currentIndex}`)
+    
     if (currentIndex === -1) {
       // Return main character
-      return {
+      const mainChar = {
         name: member.name,
         role: member.role,
         bio: member.bio,
         image_url: member.image_url,
         isMain: true
       }
+      console.log('Returning main character:', mainChar)
+      return mainChar
     } else {
       // Return alt character
       const alt = member.staff_alts?.[currentIndex]
       if (alt) {
-        return {
+        const altChar = {
           name: alt.name,
           role: alt.role,
           bio: alt.bio,
           image_url: alt.image_url,
           isMain: false
         }
+        console.log('Returning alt character:', altChar)
+        return altChar
       } else {
+        console.log('Alt not found at index:', currentIndex, 'falling back to main')
         // Fallback to main character if alt not found
         return {
           name: member.name,
@@ -131,7 +150,6 @@ export default function StaffPage() {
             <div className="h-12 bg-gradient-to-r from-nightshade-400/20 to-purple-400/20 rounded-lg mb-4 animate-pulse"></div>
             <div className="h-6 bg-white/10 rounded-lg max-w-md mx-auto animate-pulse"></div>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="card animate-pulse">
@@ -155,7 +173,10 @@ export default function StaffPage() {
             Our Staff
           </h1>
           <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-            Meet the dedicated team behind The Nightshade's Bloom. Click the arrows to view alternate characters where available.
+            Meet the dedicated team behind The Nightshade's Bloom. 
+            {staff.some(member => hasMultipleCharacters(member)) && 
+              " Hover over cards and use the arrows to view alternate characters."
+            }
           </p>
         </div>
 
@@ -204,16 +225,22 @@ export default function StaffPage() {
                     {hasMultiple && (
                       <>
                         <button
-                          onClick={() => cycleAlt(member.id, 'prev')}
-                          className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 p-2 rounded-full transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm"
+                          onClick={() => {
+                            console.log('Previous button clicked for:', member.name)
+                            cycleAlt(member.id, 'prev')
+                          }}
+                          className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 p-2 rounded-full transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm z-10"
                           title="Previous character"
                         >
                           <ChevronLeft size={20} className="text-white" />
                         </button>
                         
                         <button
-                          onClick={() => cycleAlt(member.id, 'next')}
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 p-2 rounded-full transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm"
+                          onClick={() => {
+                            console.log('Next button clicked for:', member.name)
+                            cycleAlt(member.id, 'next')
+                          }}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 p-2 rounded-full transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm z-10"
                           title="Next character"
                         >
                           <ChevronRight size={20} className="text-white" />
@@ -269,7 +296,7 @@ export default function StaffPage() {
                     </div>
                   )}
 
-                  {/* Debug info (remove in production) */}
+                  {/* Debug info (only in development) */}
                   {process.env.NODE_ENV === 'development' && (
                     <div className="mt-2 text-xs text-gray-500 bg-gray-800/50 p-2 rounded">
                       <div>ID: {member.id}</div>

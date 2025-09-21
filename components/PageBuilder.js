@@ -37,11 +37,11 @@ const componentMap = {
 // All elements that can be positioned as overlays
 const overlayElements = [
   'floatingText', 'floatingButton', 'text', 'image', 'button', 
-  'gallery', 'video', 'testimonial', 'contact'
+  'gallery', 'video', 'testimonial', 'contact', 'hero', 'divider', 'spacer'
 ]
 
-// Elements that should remain in document flow (backgrounds, spacers)
-const flowElements = ['hero', 'backgroundImage', 'spacer', 'divider']
+// Elements that should remain in document flow (backgrounds only)
+const flowElements = ['backgroundImage']
 
 export default function PageBuilder({ content, isEditable = false, onSave }) {
   const [elements, setElements] = useState(content?.elements || [])
@@ -130,6 +130,7 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
     const canvas = canvasRef.current
     if (!canvas) return
 
+    // Get the actual canvas dimensions
     const canvasRect = canvas.getBoundingClientRect()
     const centerX = canvasRect.width / 2
     const totalElements = overlayElementsList.length
@@ -143,10 +144,10 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
     const startX = centerX - (totalWidth / 2)
     
     overlayElementsList.forEach((element, index) => {
-      const newX = startX + (index * (elementWidth + spacing))
+      const newX = Math.max(0, startX + (index * (elementWidth + spacing)))
       updateElement(element.id, {
         position: { 
-          x: Math.max(0, newX), 
+          x: newX, 
           y: element.props.position?.y || 100 
         },
         width: elementWidth
@@ -217,7 +218,10 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         backgroundType: 'gradient',
         gradient: 'from-nightshade-900 to-purple-900',
         textAlign: 'center',
-        animation: 'fade-in'
+        animation: 'fade-in',
+        position: { x: 100, y: 100 },
+        width: 400,
+        height: 300
       },
       text: {
         content: 'Enter your text here...',
@@ -277,12 +281,18 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         height: 225
       },
       spacer: {
-        height: 'medium'
+        height: 'medium',
+        position: { x: 100, y: 100 },
+        width: 300,
+        height: 50
       },
       divider: {
         style: 'line',
         color: 'white',
-        thickness: 'thin'
+        thickness: 'thin',
+        position: { x: 100, y: 100 },
+        width: 300,
+        height: 20
       },
       testimonial: {
         quote: 'Amazing experience!',

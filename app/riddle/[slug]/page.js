@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 
 export default function RiddleCard({ params }) {
   const [riddle, setRiddle] = useState(null)
-  const [currentStep, setCurrentStep] = useState(0) // 0 = intro, 1-n = riddles, n+1 = password
+  const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showCard, setShowCard] = useState(false)
   const [error, setError] = useState(null)
@@ -62,20 +62,16 @@ export default function RiddleCard({ params }) {
   const handleAnswerSelect = (answerIndex) => {
     setSelectedAnswer(answerIndex)
     
-    // Auto-proceed after selection
     setTimeout(() => {
       const totalRiddles = riddle.riddles.length
       
       if (currentStep === totalRiddles) {
-        // Show password after last riddle
         setCurrentStep(totalRiddles + 1)
-        // Auto-fade after 15 seconds
         setTimeout(() => {
           setShowCard(false)
           setTimeout(() => setCurrentStep(0), 1000)
         }, 15000)
       } else if (currentStep < totalRiddles) {
-        // Next riddle
         setCurrentStep(currentStep + 1)
         setSelectedAnswer(null)
       }
@@ -84,7 +80,6 @@ export default function RiddleCard({ params }) {
 
   const handleCardClick = () => {
     if (!riddle || !riddle.riddles) return
-
     if (currentStep === 0) {
       setCurrentStep(1)
     }
@@ -117,17 +112,9 @@ export default function RiddleCard({ params }) {
     return riddle.riddles[currentStep - 1]
   }
 
-  const isPasswordStep = () => {
-    return riddle && currentStep > riddle.riddles.length
-  }
-
-  const isRiddleStep = () => {
-    return riddle && currentStep > 0 && currentStep <= riddle.riddles.length
-  }
-
-  const isIntroStep = () => {
-    return currentStep === 0
-  }
+  const isPasswordStep = () => riddle && currentStep > riddle.riddles.length
+  const isRiddleStep = () => riddle && currentStep > 0 && currentStep <= riddle.riddles.length
+  const isIntroStep = () => currentStep === 0
 
   if (loading) {
     return (
@@ -158,12 +145,133 @@ export default function RiddleCard({ params }) {
 
   return (
     <div className="min-h-screen bg-black overflow-hidden relative">
-      {/* Animated background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-purple-900/20"></div>
-      
-      {/* Static overlay effect */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none">
-        <div className="glitch-bg"></div>
+      {/* CSS Variables and Styles */}
+      <style jsx>{`
+        .retro-background {
+          --angle: 45deg;
+          --labs-sys-color-background: #111;
+          --labs-sys-color-on-background: white;
+          --base-speed: 4s;
+          --labs-sys-color-grid: #fac4ff;
+          --labs-sys-color-grid-glow: #df7373;
+          --labs-sys-color-sun-1: #fdb428;
+          --labs-sys-color-sun-2: #f672ca;
+          --labs-sys-color-sun-glow: #b9f;
+          --labs-sys-color-star: #f6c0c0;
+          --color-palm-trunk: #333;
+          --color-palm-leaf: #333;
+          --color-palm-leaf-2: #b9f;
+          --labs-sys-color-triangle: #6eccee;
+          --labs-sys-color-volume: var(--labs-sys-color-triangle);
+        }
+
+        .triangle {
+          position: absolute;
+          width: 50vmin;
+          aspect-ratio: 4/3;
+          transform: translate(3vmin, 11.8vmin) rotate(1deg);
+          filter: drop-shadow(0 0 15px var(--labs-sys-color-triangle));
+          z-index: 500;
+          perspective: 1000px;
+          animation: triangle 10s linear infinite;
+        }
+
+        .triangle:after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(45deg, white, var(--labs-sys-color-triangle));
+          clip-path: polygon(
+            6% 22%,
+            29% 94%,
+            29% 94%,
+            6% 22%,
+            94% 3%,
+            29% 94%,
+            7% 22%,
+            4% 19%,
+            29% 94%,
+            100% 0%
+          );
+          transform: translateY(4vmin);
+        }
+
+        @keyframes triangle {
+          from {
+            transform: translate(3vmin, 11.8vmin) rotate(1deg);
+          }
+          50% {
+            transform: translate(3vmin, 12vmin) rotateX(-15deg) rotateY(-20deg);
+          }
+          to {
+            transform: translate(3vmin, 11.8vmin) rotate(1deg);
+          }
+        }
+
+        .glitch-card {
+          background: linear-gradient(
+            var(--angle),
+            var(--labs-sys-color-sun-2),
+            var(--labs-sys-color-triangle)
+          );
+          animation: kode-text 4s linear infinite;
+          perspective: 40px;
+        }
+
+        .glitch-card:after {
+          content: "";
+          position: absolute;
+          top: 8vmin;
+          left: 1vmin;
+          width: 48vmin;
+          height: 14vmin;
+          background: repeating-radial-gradient(black, transparent 10vmin);
+          mix-blend-mode: overlay;
+          opacity: 0.2;
+          transform: rotate(347deg);
+        }
+
+        @keyframes kode-text {
+          from {
+            --angle: 45deg;
+            transform: translateY(-0vh);
+          }
+          49.5% {
+            --angle: 360deg;
+            transform: translateY(-1vh);
+            filter: brightness(100%);
+          }
+          50% {
+            --angle: 360deg;
+            transform: translateY(-1vh) scaleY(0.1) skewX(253deg);
+            filter: brightness(190%);
+          }
+          51% {
+            --angle: 360deg;
+            transform: translateY(-1vh) scaleY(0.5) skewY(37deg);
+            filter: brightness(190%);
+          }
+          52% {
+            --angle: 360deg;
+            filter: brightness(190%);
+            transform: translateY(-0vh);
+          }
+          to {
+            --angle: 45deg;
+            transform: translateY(-0vh);
+          }
+        }
+
+        @property --angle {
+          syntax: "<angle>";
+          inherits: true;
+          initial-value: 0deg;
+        }
+      `}</style>
+
+      {/* Retro Background */}
+      <div className="retro-background absolute inset-0">
+        <div className="triangle"></div>
       </div>
       
       {/* RP Text at top */}
@@ -210,7 +318,7 @@ export default function RiddleCard({ params }) {
         </div>
       )}
 
-      {/* Main Card */}
+      {/* Main Business Card */}
       <div className="flex items-center justify-center min-h-screen px-8 relative z-10">
         <AnimatePresence>
           {showCard && (
@@ -221,7 +329,7 @@ export default function RiddleCard({ params }) {
               transition={{ duration: 1 }}
               className="relative"
             >
-              <GlitchCard 
+              <BusinessCard 
                 onClick={handleCardClick}
                 content={getCurrentContent()}
                 logo={riddle.venue_logo}
@@ -245,64 +353,16 @@ export default function RiddleCard({ params }) {
           {isPasswordStep() && 'The secret has been revealed'}
         </p>
       </div>
-
-      {/* Glitch effect styles */}
-      <style jsx>{`
-        .glitch-bg {
-          width: 100%;
-          height: 100%;
-          background-image: 
-            repeating-linear-gradient(
-              0deg,
-              transparent,
-              transparent 2px,
-              rgba(255,255,255,0.03) 2px,
-              rgba(255,255,255,0.03) 4px
-            ),
-            repeating-linear-gradient(
-              90deg,
-              transparent,
-              transparent 2px,
-              rgba(255,255,255,0.03) 2px,
-              rgba(255,255,255,0.03) 4px
-            );
-          animation: glitchBg 0.2s infinite;
-        }
-
-        @keyframes glitchBg {
-          0% { transform: translate(0, 0); }
-          10% { transform: translate(-2px, 2px); }
-          20% { transform: translate(2px, -2px); }
-          30% { transform: translate(-2px, -2px); }
-          40% { transform: translate(2px, 2px); }
-          50% { transform: translate(-2px, 2px); }
-          60% { transform: translate(2px, -2px); }
-          70% { transform: translate(-2px, -2px); }
-          80% { transform: translate(2px, 2px); }
-          90% { transform: translate(-2px, 2px); }
-          100% { transform: translate(0, 0); }
-        }
-      `}</style>
     </div>
   )
 }
 
-// Enhanced Glitch Card Component
-function GlitchCard({ 
+// Business Card Component
+function BusinessCard({ 
   onClick, content, logo, isPassword, isRiddle, isIntro, 
   riddle, onAnswerSelect, selectedAnswer 
 }) {
-  const [glitchActive, setGlitchActive] = useState(false)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setGlitchActive(true)
-      setTimeout(() => setGlitchActive(false), 150)
-    }, 2000 + Math.random() * 3000)
-
-    return () => clearInterval(interval)
-  }, [])
-
+  // Mock answer options - you can later add this to the admin panel
   const mockAnswerOptions = [
     "Answer A: First option",
     "Answer B: Second option", 
@@ -314,178 +374,93 @@ function GlitchCard({
       className={`relative group ${isIntro ? 'cursor-pointer' : ''}`}
       onClick={isIntro ? onClick : undefined}
     >
-      {/* Main Card */}
-      <div className={`relative bg-black border-2 rounded-lg p-8 min-w-[500px] min-h-[400px] flex flex-col items-center justify-center space-y-6 overflow-hidden transition-all duration-300 ${
-        glitchActive ? 'glitch-border' : 'border-gray-700'
-      }`}>
+      {/* Business Card - longer than tall like a real business card */}
+      <div className={`glitch-card relative bg-black border rounded-xl overflow-hidden transition-all duration-300`}
+           style={{ width: '600px', height: '350px' }}>
         
-        {/* Animated glitch border effect */}
-        <div className={`absolute inset-0 rounded-lg transition-opacity duration-150 ${
-          glitchActive ? 'opacity-100' : 'opacity-0'
-        }`}>
-          {/* Glitch border effects */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-pink-400 to-transparent animate-pulse"></div>
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-transparent via-green-400 to-transparent animate-pulse"></div>
-          <div className="absolute right-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-transparent via-yellow-400 to-transparent animate-pulse"></div>
+        {/* Card Content Container */}
+        <div className="relative z-10 h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-gray-900/90 to-black/90">
           
-          {/* Corner effects */}
-          <div className="absolute top-0 left-0 w-4 h-4 bg-red-400 opacity-60 animate-pulse"></div>
-          <div className="absolute top-0 right-0 w-4 h-4 bg-blue-400 opacity-60 animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-4 h-4 bg-green-400 opacity-60 animate-pulse"></div>
-          <div className="absolute bottom-0 right-0 w-4 h-4 bg-purple-400 opacity-60 animate-pulse"></div>
-        </div>
+          {/* Logo */}
+          {logo && (
+            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-700 mb-6">
+              <img src={logo} alt="Venue Logo" className="w-full h-full object-cover" />
+            </div>
+          )}
 
-        {/* Intense glitch lines when active */}
-        {glitchActive && (
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/4 left-0 right-0 h-[1px] bg-cyan-400 animate-pulse opacity-80"></div>
-            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-pink-400 animate-pulse opacity-60"></div>
-            <div className="absolute top-3/4 left-0 right-0 h-[1px] bg-green-400 animate-pulse opacity-70"></div>
-          </div>
-        )}
-
-        {/* Logo */}
-        {logo && (
-          <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-700">
-            <img src={logo} alt="Venue Logo" className="w-full h-full object-cover" />
-          </div>
-        )}
-
-        {/* Content */}
-        <div className="text-center space-y-6 relative z-10 w-full max-w-md">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${content}-${selectedAnswer}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.5 }}
-            >
-              {isPassword ? (
-                <div className="space-y-4">
-                  <div className="text-sm text-green-300 uppercase tracking-wider">
-                    Secret Revealed
+          {/* Content */}
+          <div className="text-center space-y-6 w-full max-w-md">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`${content}-${selectedAnswer}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.5 }}
+              >
+                {isPassword ? (
+                  <div className="space-y-4">
+                    <div className="text-sm text-green-300 uppercase tracking-wider">
+                      Secret Revealed
+                    </div>
+                    <div className="text-4xl font-bold text-green-400 tracking-widest animate-pulse font-mono">
+                      {content}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      This message will fade in 15 seconds
+                    </div>
                   </div>
-                  <div className="text-4xl font-bold text-green-400 tracking-widest animate-pulse font-mono">
-                    {content}
+                ) : isRiddle ? (
+                  <div className="space-y-6">
+                    <div className="text-white text-lg leading-relaxed">
+                      {content}
+                    </div>
+                    
+                    {/* Answer Options */}
+                    <div className="space-y-3">
+                      {mockAnswerOptions.map((option, index) => (
+                        <button
+                          key={index}
+                          onClick={() => onAnswerSelect(index)}
+                          disabled={selectedAnswer !== null}
+                          className={`w-full p-3 border-2 rounded-lg text-left transition-all duration-300 ${
+                            selectedAnswer === index
+                              ? 'border-green-400 bg-green-400/20 text-green-300'
+                              : selectedAnswer !== null
+                              ? 'border-gray-600 bg-gray-800/50 text-gray-500 cursor-not-allowed'
+                              : 'border-gray-500 bg-gray-700/50 text-white hover:border-purple-400 hover:bg-purple-400/20 cursor-pointer'
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-400">
-                    This message will fade in 15 seconds
-                  </div>
-                </div>
-              ) : isRiddle ? (
-                <div className="space-y-6">
+                ) : (
                   <div className="text-white text-lg leading-relaxed">
                     {content}
                   </div>
-                  
-                  {/* Answer Options */}
-                  <div className="space-y-3">
-                    {mockAnswerOptions.map((option, index) => (
-                      <button
-                        key={index}
-                        onClick={() => onAnswerSelect(index)}
-                        disabled={selectedAnswer !== null}
-                        className={`w-full p-3 border-2 rounded-lg text-left transition-all duration-300 ${
-                          selectedAnswer === index
-                            ? 'border-green-400 bg-green-400/20 text-green-300'
-                            : selectedAnswer !== null
-                            ? 'border-gray-600 bg-gray-800/50 text-gray-500 cursor-not-allowed'
-                            : 'border-gray-500 bg-gray-700/50 text-white hover:border-purple-400 hover:bg-purple-400/20 cursor-pointer'
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-white text-lg leading-relaxed">
-                  {content}
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Hover effect for intro */}
+          {isIntro && (
+            <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+          )}
+
+          {/* Pulsing effect for password reveal */}
+          {isPassword && (
+            <div className="absolute inset-0 bg-green-400/10 animate-pulse rounded-xl"></div>
+          )}
         </div>
-
-        {/* Hover effect for intro */}
-        {isIntro && (
-          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg"></div>
-        )}
-
-        {/* Pulsing effect for password reveal */}
-        {isPassword && (
-          <div className="absolute inset-0 bg-green-400/10 animate-pulse rounded-lg"></div>
-        )}
       </div>
 
       {/* Outer glow effects */}
       {isPassword && (
-        <div className="absolute inset-0 bg-green-400/20 rounded-lg blur-xl animate-pulse"></div>
+        <div className="absolute inset-0 bg-green-400/20 rounded-xl blur-xl animate-pulse"></div>
       )}
-      
-      {glitchActive && (
-        <div className="absolute inset-0 bg-purple-400/30 rounded-lg blur-lg animate-pulse"></div>
-      )}
-
-      <style jsx>{`
-        .glitch-border {
-          border-color: transparent;
-          background: linear-gradient(45deg, 
-            cyan, magenta, yellow, cyan
-          ) 1;
-          background-clip: padding-box;
-          animation: glitchBorderAnimation 0.1s infinite;
-        }
-
-        @keyframes glitchBorderAnimation {
-          0% { 
-            filter: hue-rotate(0deg) saturate(1);
-            transform: translateX(0px);
-          }
-          10% { 
-            filter: hue-rotate(90deg) saturate(1.2);
-            transform: translateX(2px);
-          }
-          20% { 
-            filter: hue-rotate(180deg) saturate(0.8);
-            transform: translateX(-2px);
-          }
-          30% { 
-            filter: hue-rotate(270deg) saturate(1.5);
-            transform: translateX(1px);
-          }
-          40% { 
-            filter: hue-rotate(0deg) saturate(1);
-            transform: translateX(-1px);
-          }
-          50% { 
-            filter: hue-rotate(45deg) saturate(1.3);
-            transform: translateX(0px);
-          }
-          60% { 
-            filter: hue-rotate(135deg) saturate(0.9);
-            transform: translateX(2px);
-          }
-          70% { 
-            filter: hue-rotate(225deg) saturate(1.1);
-            transform: translateX(-1px);
-          }
-          80% { 
-            filter: hue-rotate(315deg) saturate(1.4);
-            transform: translateX(1px);
-          }
-          90% { 
-            filter: hue-rotate(180deg) saturate(0.7);
-            transform: translateX(0px);
-          }
-          100% { 
-            filter: hue-rotate(360deg) saturate(1);
-            transform: translateX(0px);
-          }
-        }
-      `}</style>
     </div>
   )
 }

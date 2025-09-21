@@ -38,7 +38,7 @@ export default function StaffPage() {
           id: member.id,
           show_alts: member.show_alts,
           alts_count: member.staff_alts?.length || 0,
-          alts: member.staff_alts
+          alts_data: member.staff_alts
         })
       })
       
@@ -52,78 +52,95 @@ export default function StaffPage() {
   }
 
   const cycleAlt = (staffId, direction) => {
-    console.log(`Cycling alt for staff ID: ${staffId}, direction: ${direction}`)
+    console.log(`=== Cycling alt for staff ID: ${staffId}, direction: ${direction} ===`)
     
     const member = staff.find(s => s.id === staffId)
     if (!member) {
-      console.log('Member not found for ID:', staffId)
+      console.log('❌ Member not found for ID:', staffId)
       return
     }
+
+    console.log(`📋 Staff Member: ${member.name}`)
+    console.log(`🔧 show_alts: ${member.show_alts}`)
+    console.log(`📊 staff_alts array:`, member.staff_alts)
+    console.log(`📈 Total alts: ${member.staff_alts?.length || 0}`)
 
     const totalAlts = member.staff_alts?.length || 0
-    console.log(`Staff ${member.name} has ${totalAlts} alts, show_alts: ${member.show_alts}`)
     
     // Only allow cycling if show_alts is enabled and there are alts
-    if (!member.show_alts || totalAlts === 0) {
-      console.log('Alt cycling not available - show_alts:', member.show_alts, 'totalAlts:', totalAlts)
+    if (!member.show_alts) {
+      console.log('⚠️ show_alts is disabled for this member')
       return
     }
 
-    const maxIndex = totalAlts - 1 // Last alt index
+    if (totalAlts === 0) {
+      console.log('⚠️ No alt characters found')
+      return
+    }
+
+    const currentIndex = currentAlts[staffId] ?? -1
+    const maxIndex = totalAlts - 1 // Last alt index (0-based)
     const minIndex = -1 // -1 for main character
 
-    const currentIndex = currentAlts[staffId] || -1
+    console.log(`📍 Current index: ${currentIndex}`)
+    console.log(`📊 Index range: ${minIndex} to ${maxIndex}`)
+
     let newIndex = currentIndex
 
     if (direction === 'next') {
+      // If at last alt, go to main. If at main or any alt, go to next
       newIndex = currentIndex >= maxIndex ? minIndex : currentIndex + 1
     } else {
+      // If at main, go to last alt. If at any alt, go to previous
       newIndex = currentIndex <= minIndex ? maxIndex : currentIndex - 1
     }
 
-    console.log(`Changing from index ${currentIndex} to ${newIndex}`)
-    
+    console.log(`➡️ New index: ${newIndex}`)
+
+    // Validate new index
+    if (newIndex !== -1 && (newIndex < 0 || newIndex >= totalAlts)) {
+      console.log('❌ Invalid new index, aborting')
+      return
+    }
+
+    // Update state
     setCurrentAlts(prev => {
       const updated = {
         ...prev,
         [staffId]: newIndex
       }
-      console.log('Updated currentAlts:', updated)
+      console.log(`✅ Updated currentAlts:`, updated)
       return updated
     })
   }
 
   const getCurrentCharacter = (member) => {
-    const currentIndex = currentAlts[member.id] || -1
+    const currentIndex = currentAlts[member.id] ?? -1
     
-    console.log(`Getting character for ${member.name}, index: ${currentIndex}`)
+    // console.log(`Getting character for ${member.name}, index: ${currentIndex}`)
     
     if (currentIndex === -1) {
       // Return main character
-      const mainChar = {
+      return {
         name: member.name,
         role: member.role,
         bio: member.bio,
         image_url: member.image_url,
         isMain: true
       }
-      console.log('Returning main character:', mainChar)
-      return mainChar
     } else {
       // Return alt character
       const alt = member.staff_alts?.[currentIndex]
       if (alt) {
-        const altChar = {
+        return {
           name: alt.name,
           role: alt.role,
           bio: alt.bio,
           image_url: alt.image_url,
           isMain: false
         }
-        console.log('Returning alt character:', altChar)
-        return altChar
       } else {
-        console.log('Alt not found at index:', currentIndex, 'falling back to main')
+        console.log(`⚠️ Alt not found at index ${currentIndex}, using main`)
         // Fallback to main character if alt not found
         return {
           name: member.name,
@@ -137,9 +154,7 @@ export default function StaffPage() {
   }
 
   const hasMultipleCharacters = (member) => {
-    const hasAlts = member.show_alts && member.staff_alts && member.staff_alts.length > 0
-    console.log(`${member.name} has multiple characters:`, hasAlts)
-    return hasAlts
+    return member.show_alts === true && member.staff_alts && member.staff_alts.length > 0
   }
 
   if (loading) {
@@ -191,11 +206,20 @@ export default function StaffPage() {
             {staff.map((member) => {
               const currentChar = getCurrentCharacter(member)
               const hasMultiple = hasMultipleCharacters(member)
-              const currentIndex = currentAlts[member.id] || -1
+              const currentIndex = currentAlts[member.id] ?? -1
               const totalCharacters = hasMultiple ? (member.staff_alts?.length || 0) + 1 : 1
               
               return (
                 <div key={member.id} className="card group hover:shadow-2xl hover:shadow-nightshade-500/20 transition-all duration-300">
+                  {/* Debug info at top in development */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="mb-2 text-xs text-gray-500 bg-gray-800/50 p-2 rounded">
+                      <div>ID: {member.id} | Index: {currentIndex}</div>
+                      <div>Show Alts: {member.show_alts ? 'Yes' : 'No'} | Count: {member.staff_alts?.length || 0}</div>
+                      <div>Current: {currentChar.isMain ? 'Main' : `Alt ${currentIndex + 1}`}</div>
+                    </div>
+                  )}
+
                   {/* Special Role Banner */}
                   {member.special_role && (
                     <div className="mb-4 -mx-6 -mt-6 px-6 py-2 bg-gradient-to-r from-nightshade-600 to-purple-600 rounded-t-xl">
@@ -212,7 +236,8 @@ export default function StaffPage() {
                         <img
                           src={currentChar.image_url}
                           alt={currentChar.name}
-                          className="w-full h-full object-cover transition-all duration-300"
+                          className="w-full h-full object-cover transition-all duration-500"
+                          key={`${member.id}-${currentIndex}`} // Force re-render on character change
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -225,8 +250,10 @@ export default function StaffPage() {
                     {hasMultiple && (
                       <>
                         <button
-                          onClick={() => {
-                            console.log('Previous button clicked for:', member.name)
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            console.log(`🔄 Previous button clicked for: ${member.name}`)
                             cycleAlt(member.id, 'prev')
                           }}
                           className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 p-2 rounded-full transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm z-10"
@@ -236,8 +263,10 @@ export default function StaffPage() {
                         </button>
                         
                         <button
-                          onClick={() => {
-                            console.log('Next button clicked for:', member.name)
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            console.log(`🔄 Next button clicked for: ${member.name}`)
                             cycleAlt(member.id, 'next')
                           }}
                           className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/70 hover:bg-black/90 p-2 rounded-full transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm z-10"
@@ -253,11 +282,11 @@ export default function StaffPage() {
 
                         {/* Character Dots */}
                         <div className="absolute bottom-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className={`w-2 h-2 rounded-full ${currentIndex === -1 ? 'bg-nightshade-400' : 'bg-white/30'}`}></div>
+                          <div className={`w-2 h-2 rounded-full transition-colors ${currentIndex === -1 ? 'bg-nightshade-400' : 'bg-white/30'}`}></div>
                           {member.staff_alts?.map((_, altIndex) => (
                             <div
                               key={altIndex}
-                              className={`w-2 h-2 rounded-full ${currentIndex === altIndex ? 'bg-nightshade-400' : 'bg-white/30'}`}
+                              className={`w-2 h-2 rounded-full transition-colors ${currentIndex === altIndex ? 'bg-nightshade-400' : 'bg-white/30'}`}
                             ></div>
                           ))}
                         </div>
@@ -268,17 +297,17 @@ export default function StaffPage() {
                   {/* Character Info */}
                   <div className="text-center space-y-3">
                     <div>
-                      <h3 className="text-xl font-bold text-nightshade-300 mb-1">
+                      <h3 className="text-xl font-bold text-nightshade-300 mb-1 transition-all duration-300">
                         {currentChar.name}
                       </h3>
-                      <p className="text-purple-400 font-medium">
+                      <p className="text-purple-400 font-medium transition-all duration-300">
                         {currentChar.role}
                       </p>
                     </div>
                     
                     {currentChar.bio && (
                       <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                        <p className="text-gray-300 text-sm leading-relaxed">
+                        <p className="text-gray-300 text-sm leading-relaxed transition-all duration-300">
                           {currentChar.bio}
                         </p>
                       </div>
@@ -293,17 +322,6 @@ export default function StaffPage() {
                         <span>•</span>
                         <span>Hover to navigate</span>
                       </div>
-                    </div>
-                  )}
-
-                  {/* Debug info (only in development) */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <div className="mt-2 text-xs text-gray-500 bg-gray-800/50 p-2 rounded">
-                      <div>ID: {member.id}</div>
-                      <div>Show Alts: {member.show_alts ? 'Yes' : 'No'}</div>
-                      <div>Alts Count: {member.staff_alts?.length || 0}</div>
-                      <div>Current Index: {currentIndex}</div>
-                      <div>Is Main: {currentChar.isMain ? 'Yes' : 'No'}</div>
                     </div>
                   )}
                 </div>

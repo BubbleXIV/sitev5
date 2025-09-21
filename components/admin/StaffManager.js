@@ -320,7 +320,6 @@ function StaffForm({ staff, onSave, onCancel, saving }) {
   })
 
   const [alts, setAlts] = useState(staff?.staff_alts || [])
-  const [errors, setErrors] = useState({})
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -562,3 +561,5 @@ function StaffForm({ staff, onSave, onCancel, saving }) {
         </div>
       </form>
     </div>
+  )
+}

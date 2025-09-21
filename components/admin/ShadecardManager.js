@@ -274,9 +274,6 @@ function ShadecardForm({ shadecard, onSave, onCancel }) {
     venue_logo: shadecard?.venue_logo || '',
     final_password: shadecard?.final_password || '',
     riddles: shadecard?.riddles || [
-      { text: '', rpText: '' },
-      { text: '', rpText: '' },
-      { text: '', rpText: '' },
       { text: '', rpText: '' }
     ]
   })

@@ -274,7 +274,7 @@ function ShadecardForm({ shadecard, onSave, onCancel }) {
     venue_logo: shadecard?.venue_logo || '',
     final_password: shadecard?.final_password || '',
     riddles: shadecard?.riddles || [
-      { text: '', rpText: '' }
+      { text: '', rpText: '', optionA: '', optionB: '', optionC: '', correctAnswer: 'A' }
     ]
   })
 
@@ -312,11 +312,12 @@ function ShadecardForm({ shadecard, onSave, onCancel }) {
 
     // Validate riddles
     const validRiddles = formData.riddles.filter(riddle => 
-      riddle.text.trim() && riddle.rpText.trim()
+      riddle.text.trim() && riddle.rpText.trim() && 
+      riddle.optionA.trim() && riddle.optionB.trim() && riddle.optionC.trim()
     )
     
     if (validRiddles.length === 0) {
-      alert('At least one complete riddle is required')
+      alert('At least one complete riddle with all answer options is required')
       return
     }
 
@@ -342,7 +343,7 @@ function ShadecardForm({ shadecard, onSave, onCancel }) {
     }
     setFormData(prev => ({
       ...prev,
-      riddles: [...prev.riddles, { text: '', rpText: '' }]
+      riddles: [...prev.riddles, { text: '', rpText: '', optionA: '', optionB: '', optionC: '', correctAnswer: 'A' }]
     }))
   }
 
@@ -456,94 +457,91 @@ function ShadecardForm({ shadecard, onSave, onCancel }) {
             </button>
           </div>
 
-// Add this to your existing ShadecardForm component in the riddle editing section:
+          <div className="space-y-6">
+            {formData.riddles.map((riddle, index) => (
+              <div key={index} className="bg-white/5 rounded-lg p-6 border border-white/10 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h5 className="font-medium text-nightshade-300">Riddle {index + 1}</h5>
+                  {formData.riddles.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeRiddle(index)}
+                      className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
 
-// Update the riddle editing section in your ShadecardForm:
-<div className="space-y-6">
-  {formData.riddles.map((riddle, index) => (
-    <div key={index} className="bg-white/5 rounded-lg p-6 border border-white/10 space-y-4">
-      <div className="flex justify-between items-center">
-        <h5 className="font-medium text-nightshade-300">Riddle {index + 1}</h5>
-        {formData.riddles.length > 1 && (
-          <button
-            type="button"
-            onClick={() => removeRiddle(index)}
-            className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
-          >
-            <Trash2 size={16} />
-          </button>
-        )}
-      </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    RP Text (What the narrator says) *
+                  </label>
+                  <textarea
+                    value={riddle.rpText}
+                    onChange={(e) => updateRiddle(index, 'rpText', e.target.value)}
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white resize-none"
+                    rows="2"
+                    placeholder="The shadows whisper of ancient secrets..."
+                    required
+                  />
+                </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          RP Text (What the narrator says) *
-        </label>
-        <textarea
-          value={riddle.rpText}
-          onChange={(e) => updateRiddle(index, 'rpText', e.target.value)}
-          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white resize-none"
-          rows="2"
-          placeholder="The shadows whisper of ancient secrets..."
-          required
-        />
-      </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Riddle Text (What appears on the card) *
+                  </label>
+                  <textarea
+                    value={riddle.text}
+                    onChange={(e) => updateRiddle(index, 'text', e.target.value)}
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white resize-none"
+                    rows="3"
+                    placeholder="I speak without a mouth and hear without ears..."
+                    required
+                  />
+                </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Riddle Text (What appears on the card) *
-        </label>
-        <textarea
-          value={riddle.text}
-          onChange={(e) => updateRiddle(index, 'text', e.target.value)}
-          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white resize-none"
-          rows="3"
-          placeholder="I speak without a mouth and hear without ears..."
-          required
-        />
-      </div>
-
-      <div className="border-t border-white/10 pt-4">
-        <label className="block text-sm font-medium text-gray-300 mb-3">
-          Answer Options (3 required)
-        </label>
-        <div className="space-y-2">
-          {['optionA', 'optionB', 'optionC'].map((optionKey, optionIndex) => (
-            <div key={optionKey}>
-              <label className="block text-xs text-gray-400 mb-1">
-                Option {String.fromCharCode(65 + optionIndex)}:
-              </label>
-              <input
-                type="text"
-                value={riddle[optionKey] || ''}
-                onChange={(e) => updateRiddle(index, optionKey, e.target.value)}
-                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-                placeholder={`Answer option ${String.fromCharCode(65 + optionIndex)}`}
-                required
-              />
-            </div>
-          ))}
-        </div>
-        
-        {/* Correct Answer Selection */}
-        <div className="mt-3">
-          <label className="block text-xs text-gray-400 mb-1">
-            Correct Answer:
-          </label>
-          <select
-            value={riddle.correctAnswer || 'A'}
-            onChange={(e) => updateRiddle(index, 'correctAnswer', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
-          >
-            <option value="A">Option A</option>
-            <option value="B">Option B</option>
-            <option value="C">Option C</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  ))}
-</div>
+                <div className="border-t border-white/10 pt-4">
+                  <label className="block text-sm font-medium text-gray-300 mb-3">
+                    Answer Options (3 required)
+                  </label>
+                  <div className="space-y-2">
+                    {['optionA', 'optionB', 'optionC'].map((optionKey, optionIndex) => (
+                      <div key={optionKey}>
+                        <label className="block text-xs text-gray-400 mb-1">
+                          Option {String.fromCharCode(65 + optionIndex)}:
+                        </label>
+                        <input
+                          type="text"
+                          value={riddle[optionKey] || ''}
+                          onChange={(e) => updateRiddle(index, optionKey, e.target.value)}
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                          placeholder={`Answer option ${String.fromCharCode(65 + optionIndex)}`}
+                          required
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Correct Answer Selection */}
+                  <div className="mt-3">
+                    <label className="block text-xs text-gray-400 mb-1">
+                      Correct Answer:
+                    </label>
+                    <select
+                      value={riddle.correctAnswer || 'A'}
+                      onChange={(e) => updateRiddle(index, 'correctAnswer', e.target.value)}
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm"
+                    >
+                      <option value="A">Option A</option>
+                      <option value="B">Option B</option>
+                      <option value="C">Option C</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="flex justify-end space-x-4 pt-6">

@@ -148,8 +148,9 @@ export default function RiddleCard({ params }) {
       {/* Background effects */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-purple-900/20"></div>
       
-      {/* Moving Retro Triangle Behind Everything */}
+      {/* Multiple Moving Triangles Behind Everything */}
       <div className="absolute inset-0 z-0">
+        {/* Main center triangle */}
         <motion.div
           animate={{
             rotate: [0, 360],
@@ -167,6 +168,111 @@ export default function RiddleCard({ params }) {
             background: 'linear-gradient(45deg, rgba(147, 51, 234, 0.1), rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.1))',
             clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
             filter: 'blur(2px)'
+          }}
+        />
+        
+        {/* Top left triangle */}
+        <motion.div
+          animate={{
+            rotate: [180, 540],
+            scale: [0.6, 1.4, 0.6],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute top-1/4 left-1/4 transform -translate-x-1/2 -translate-y-1/2"
+          style={{
+            width: '400px',
+            height: '400px',
+            background: 'linear-gradient(225deg, rgba(168, 85, 247, 0.08), rgba(139, 92, 246, 0.08))',
+            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+            filter: 'blur(1px)'
+          }}
+        />
+        
+        {/* Top right triangle */}
+        <motion.div
+          animate={{
+            rotate: [90, 450],
+            scale: [0.7, 1.1, 0.7],
+          }}
+          transition={{
+            duration: 22,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+          className="absolute top-1/3 right-1/4 transform translate-x-1/2 -translate-y-1/2"
+          style={{
+            width: '350px',
+            height: '350px',
+            background: 'linear-gradient(315deg, rgba(236, 72, 153, 0.06), rgba(219, 39, 119, 0.06))',
+            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+            filter: 'blur(2px)'
+          }}
+        />
+        
+        {/* Bottom left triangle */}
+        <motion.div
+          animate={{
+            rotate: [270, -90],
+            scale: [0.9, 1.3, 0.9],
+          }}
+          transition={{
+            duration: 18,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute bottom-1/3 left-1/5 transform -translate-x-1/2 translate-y-1/2"
+          style={{
+            width: '300px',
+            height: '300px',
+            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.07), rgba(22, 163, 74, 0.07))',
+            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+            filter: 'blur(1px)'
+          }}
+        />
+        
+        {/* Bottom right triangle */}
+        <motion.div
+          animate={{
+            rotate: [45, 405],
+            scale: [0.5, 1.5, 0.5],
+          }}
+          transition={{
+            duration: 28,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+          className="absolute bottom-1/4 right-1/3 transform translate-x-1/2 translate-y-1/2"
+          style={{
+            width: '450px',
+            height: '450px',
+            background: 'linear-gradient(180deg, rgba(245, 158, 11, 0.05), rgba(217, 119, 6, 0.05))',
+            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+            filter: 'blur(3px)'
+          }}
+        />
+        
+        {/* Additional small triangles for more atmosphere */}
+        <motion.div
+          animate={{
+            rotate: [0, -360],
+            scale: [0.3, 0.8, 0.3],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute top-1/6 left-3/4 transform -translate-x-1/2 -translate-y-1/2"
+          style={{
+            width: '200px',
+            height: '200px',
+            background: 'linear-gradient(60deg, rgba(99, 102, 241, 0.05), rgba(79, 70, 229, 0.05))',
+            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+            filter: 'blur(1px)'
           }}
         />
       </div>
@@ -314,8 +420,12 @@ function BusinessCard({
   onClick, content, logo, isPassword, isRiddle, isIntro, 
   riddle, onAnswerSelect, selectedAnswer 
 }) {
-  // Mock answer options - you can later add this to the admin panel
-  const mockAnswerOptions = [
+  // Use real answer options from riddle data instead of mock data
+  const answerOptions = riddle ? [
+    riddle.optionA || "Answer A: First option",
+    riddle.optionB || "Answer B: Second option", 
+    riddle.optionC || "Answer C: Third option"
+  ] : [
     "Answer A: First option",
     "Answer B: Second option", 
     "Answer C: Third option"
@@ -333,15 +443,15 @@ function BusinessCard({
         {/* Subtle border glow */}
         <div className="absolute inset-0 rounded-lg border border-purple-500/20"></div>
 
+        {/* Logo as overlay - positioned in top-left corner */}
+        {logo && (
+          <div className="absolute top-4 left-4 w-12 h-12 z-20">
+            <img src={logo} alt="Venue Logo" className="w-full h-full object-contain opacity-80" />
+          </div>
+        )}
+
         {/* Card Content Container */}
         <div className="relative z-10 h-full flex flex-col items-center justify-center p-8">
-
-          {/* Logo */}
-          {logo && (
-            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-700 mb-6">
-              <img src={logo} alt="Venue Logo" className="w-full h-full object-cover" />
-            </div>
-          )}
 
           {/* Content */}
           <div className="text-center space-y-6 w-full max-w-md">
@@ -373,7 +483,7 @@ function BusinessCard({
                     
                     {/* Answer Options */}
                     <div className="space-y-3">
-                      {mockAnswerOptions.map((option, index) => (
+                      {answerOptions.map((option, index) => (
                         <button
                           key={index}
                           onClick={() => onAnswerSelect(index)}

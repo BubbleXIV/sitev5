@@ -719,67 +719,87 @@ function ElementEditor({ element, onUpdate, onRemove, onDuplicate, onClose }) {
 
 function renderElementEditor(type, props, updateProp) {
   switch (type) {
+    case 'hero':
+      return (
+        <>
+          <input
+            type="text"
+            placeholder="Title"
+            value={props.title || ''}
+            onChange={(e) => updateProp('title', e.target.value)}
+            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+          />
+          <input
+            type="text"
+            placeholder="Subtitle"
+            value={props.subtitle || ''}
+            onChange={(e) => updateProp('subtitle', e.target.value)}
+            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+          />
+          <select
+            value={props.backgroundType || 'gradient'}
+            onChange={(e) => updateProp('backgroundType', e.target.value)}
+            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+          >
+            <option value="gradient">Gradient</option>
+            <option value="image">Image</option>
+            <option value="video">Video</option>
+          </select>
+        </>
+      )
     case 'text':
-    case 'floatingText':
       return (
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Content</label>
-            <textarea
-              value={props.content || ''}
-              onChange={(e) => updateProp('content', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-            >
-              <option value="transparent">Transparent</option>
-              <option value="bg-black/50">Semi-Black</option>
-              <option value="bg-white/50">Semi-White</option>
-              <option value="bg-gray-800/80">Dark Gray</option>
-              <option value="bg-blue-600/50">Semi-Blue</option>
-              <option value="bg-green-600/50">Semi-Green</option>
-              <option value="bg-red-600/50">Semi-Red</option>
-              <option value="bg-purple-600/50">Semi-Purple</option>
-            </select>
-          </div>
-        </div>
+        <>
+          <textarea
+            placeholder="Content"
+            value={props.content || ''}
+            onChange={(e) => updateProp('content', e.target.value)}
+            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white h-24 resize-none"
+          />
+          <select
+            value={props.fontSize || 'text-base'}
+            onChange={(e) => updateProp('fontSize', e.target.value)}
+            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+          >
+            <option value="text-sm">Small</option>
+            <option value="text-base">Medium</option>
+            <option value="text-lg">Large</option>
+            <option value="text-xl">Extra Large</option>
+          </select>
+        </>
       )
-
     case 'button':
-    case 'floatingButton':
       return (
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Button Text</label>
-            <input
-              type="text"
-              value={props.text || ''}
-              onChange={(e) => updateProp('text', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Link URL</label>
-            <input
-              type="url"
-              value={props.link || ''}
-              onChange={(e) => updateProp('link', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Style</label>
-            <select
-              value={props.style || 'primary'}
-              onChange={(e) => updateProp('style', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-            >
-              <option value="primary">Primary</option>
-              <option value="secondary">Secondary</option>
-              <option value="outline">Outline</option>
-              <option value="ghost">Ghost</option>
-            </select>
-          </div>
-        </div>
+        <>
+          <input
+            type="text"
+            placeholder="Button Text"
+            value={props.text || ''}
+            onChange={(e) => updateProp('text', e.target.value)}
+            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+          />
+          <input
+            type="url"
+            placeholder="Link URL"
+            value={props.link || ''}
+            onChange={(e) => updateProp('link', e.target.value)}
+            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+          />
+          <select
+            value={props.style || 'primary'}
+            onChange={(e) => updateProp('style', e.target.value)}
+            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
+          >
+            <option value="primary">Primary</option>
+            <option value="secondary">Secondary</option>
+            <option value="outline">Outline</option>
+          </select>
+        </>
       )
+    default:
+      return <div className="text-gray-400 text-sm">No settings available</div>
+  }
+}
 
     case 'image':
       return (

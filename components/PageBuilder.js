@@ -755,54 +755,108 @@ function renderElementEditor(type, props, updateProp) {
       );
 
     case 'text':
+    case 'floatingText':
       return (
-        <>
-          <textarea
-            placeholder="Content"
-            value={props.content || ''}
-            onChange={(e) => updateProp('content', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white h-24 resize-none"
-          />
-          <select
-            value={props.fontSize || 'text-base'}
-            onChange={(e) => updateProp('fontSize', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          >
-            <option value="text-sm">Small</option>
-            <option value="text-base">Medium</option>
-            <option value="text-lg">Large</option>
-            <option value="text-xl">Extra Large</option>
-          </select>
-        </>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Content</label>
+            <textarea
+              placeholder="Content"
+              value={props.content || ''}
+              onChange={(e) => updateProp('content', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm h-20 resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Font Size</label>
+            <select
+              value={props.fontSize || 'text-base'}
+              onChange={(e) => updateProp('fontSize', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="text-xs">Extra Small</option>
+              <option value="text-sm">Small</option>
+              <option value="text-base">Medium</option>
+              <option value="text-lg">Large</option>
+              <option value="text-xl">Extra Large</option>
+              <option value="text-2xl">2X Large</option>
+              <option value="text-3xl">3X Large</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Text Color</label>
+            <select
+              value={props.textColor || 'text-white'}
+              onChange={(e) => updateProp('textColor', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="text-white">White</option>
+              <option value="text-black">Black</option>
+              <option value="text-gray-500">Gray</option>
+              <option value="text-blue-500">Blue</option>
+              <option value="text-green-500">Green</option>
+              <option value="text-red-500">Red</option>
+              <option value="text-purple-500">Purple</option>
+              <option value="text-yellow-500">Yellow</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Background</label>
+            <select
+              value={props.backgroundColor || 'transparent'}
+              onChange={(e) => updateProp('backgroundColor', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="transparent">Transparent</option>
+              <option value="bg-black/50">Semi-Black</option>
+              <option value="bg-white/50">Semi-White</option>
+              <option value="bg-gray-800/80">Dark Gray</option>
+              <option value="bg-blue-600/50">Semi-Blue</option>
+              <option value="bg-green-600/50">Semi-Green</option>
+              <option value="bg-red-600/50">Semi-Red</option>
+              <option value="bg-purple-600/50">Semi-Purple</option>
+            </select>
+          </div>
+        </div>
       );
 
     case 'button':
+    case 'floatingButton':
       return (
-        <>
-          <input
-            type="text"
-            placeholder="Button Text"
-            value={props.text || ''}
-            onChange={(e) => updateProp('text', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          />
-          <input
-            type="url"
-            placeholder="Link URL"
-            value={props.link || ''}
-            onChange={(e) => updateProp('link', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          />
-          <select
-            value={props.style || 'primary'}
-            onChange={(e) => updateProp('style', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          >
-            <option value="primary">Primary</option>
-            <option value="secondary">Secondary</option>
-            <option value="outline">Outline</option>
-          </select>
-        </>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Button Text</label>
+            <input
+              type="text"
+              placeholder="Button Text"
+              value={props.text || ''}
+              onChange={(e) => updateProp('text', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Link URL</label>
+            <input
+              type="url"
+              placeholder="Link URL"
+              value={props.link || ''}
+              onChange={(e) => updateProp('link', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Style</label>
+            <select
+              value={props.style || 'primary'}
+              onChange={(e) => updateProp('style', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="primary">Primary</option>
+              <option value="secondary">Secondary</option>
+              <option value="outline">Outline</option>
+            </select>
+          </div>
+        </div>
       );
 
     case 'image':
@@ -857,8 +911,103 @@ function renderElementEditor(type, props, updateProp) {
         </div>
       );
 
+    case 'section':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Content</label>
+            <textarea
+              value={props.content || ''}
+              onChange={(e) => updateProp('content', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm h-20 resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Background</label>
+            <select
+              value={props.backgroundColor || 'bg-gray-800/50'}
+              onChange={(e) => updateProp('backgroundColor', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="bg-gray-800/50">Dark Gray</option>
+              <option value="bg-black/50">Semi-Black</option>
+              <option value="bg-white/50">Semi-White</option>
+              <option value="bg-blue-600/50">Semi-Blue</option>
+              <option value="bg-green-600/50">Semi-Green</option>
+              <option value="bg-red-600/50">Semi-Red</option>
+              <option value="bg-purple-600/50">Semi-Purple</option>
+            </select>
+          </div>
+        </div>
+      );
+
+    case 'card':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Title</label>
+            <input
+              type="text"
+              value={props.title || ''}
+              onChange={(e) => updateProp('title', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Content</label>
+            <textarea
+              value={props.content || ''}
+              onChange={(e) => updateProp('content', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm h-20 resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Image URL</label>
+            <input
+              type="url"
+              value={props.image || ''}
+              onChange={(e) => updateProp('image', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+        </div>
+      );
+
+    case 'navbar':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Brand</label>
+            <input
+              type="text"
+              value={props.brand || ''}
+              onChange={(e) => updateProp('brand', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+        </div>
+      );
+
+    case 'footer':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Content</label>
+            <textarea
+              value={props.content || ''}
+              onChange={(e) => updateProp('content', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm h-16 resize-none"
+            />
+          </div>
+        </div>
+      );
+
     default:
-      return <div className="text-gray-400 text-sm">No settings available</div>;
+      return (
+        <div className="text-gray-400 text-sm">
+          No additional settings available for this element type.
+        </div>
+      );
   }
 }
 

@@ -498,35 +498,51 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
     }
   }
 
-  return (
+return (
+  <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw' }}>
+    {/* Toolbar fixed at top */}
+    <div
+      style={{
+        flex: '0 0 auto',
+        padding: 10,
+        background: '#eee',
+        borderBottom: '1px solid #ccc',
+        zIndex: 20000,
+        display: 'flex',
+        gap: 8,
+        overflowX: 'auto',
+      }}
+    >
+      {/* Toolbar Buttons */}
+      {isEditable && <>
+        {Object.keys(componentMap).map(type =>
+          <button key={type} onClick={() => addElement(type)}>{`Add ${type}`}</button>
+        )}
+        <button onClick={centerElements}>Center Overlays</button>
+        <button onClick={() => setViewMode(viewMode === 'mixed' ? 'overlay-only' : 'mixed')}>
+          {viewMode === 'mixed' ? 'Show Overlays Only' : 'Show All Elements'}
+        </button>
+      </>}
+    </div>
+
+    {/* Canvas container */}
     <div
       ref={canvasRef}
       style={{
+        flex: '1 1 auto',
+        overflowY: 'auto',
+        overflowX: 'hidden',
         position: 'relative',
-        width: '100vw',
-        height: '100vh',
-        overflow: 'auto',
+        maxWidth: 1200,
+        margin: '0 auto',
         backgroundColor: '#f0f0f0',
         border: '1px solid #ccc',
-        userSelect: isDragging ? 'none' : 'auto',
         padding: 20,
         boxSizing: 'border-box',
+        userSelect: isDragging ? 'none' : 'auto',
       }}
       onMouseDown={() => setSelectedElement(null)}
     >
-      {/* Buttons for adding elements */}
-      {isEditable && (
-        <div style={{ marginBottom: 10, display: 'flex', gap: 8 }}>
-          {Object.keys(componentMap).map((type) => (
-            <button key={type} onClick={() => addElement(type)}>{`Add ${type}`}</button>
-          ))}
-          <button onClick={centerElements}>Center Overlays</button>
-          <button onClick={() => setViewMode(viewMode === 'mixed' ? 'overlay-only' : 'mixed')}>
-            {viewMode === 'mixed' ? 'Show Overlays Only' : 'Show All Elements'}
-          </button>
-        </div>
-      )}
-
       {/* Flow elements droppable region */}
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="flow" type="flow">
@@ -553,7 +569,7 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
       </DragDropContext>
 
       {/* Overlay elements droppable region */}
-      <DragDropContext onDragEnd={() => {}}>
+      <DragDropContext onDragEnd={() => { }}>
         <Droppable droppableId="overlay" type="overlay">
           {(provided) => (
             <div
@@ -594,5 +610,5 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         </div>
       )}
     </div>
-  )
-}
+  </div>
+)

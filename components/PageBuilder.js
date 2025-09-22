@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import BackgroundImageSection from '@/components/builder/BackgroundImageSection'
 import FloatingTextSection from '@/components/builder/FloatingTextSection'
 import FloatingButtonSection from '@/components/builder/FloatingButtonSection'
@@ -34,49 +33,36 @@ const componentMap = {
   floatingButton: FloatingButtonSection,
 }
 
-// All elements that can be positioned as overlays
-const overlayElements = [
-  'floatingText', 'floatingButton', 'text', 'image', 'button', 
-  'gallery', 'video', 'testimonial', 'contact', 'hero', 'divider', 'spacer'
-]
-
-// Elements that should remain in document flow (backgrounds only)
-const flowElements = ['backgroundImage']
-
-export default function PageBuilder({ content, isEditable = false, onSave }) {
+export default function PageBuilder({ content, isEditable = false, onSave, onClose }) {
   const [elements, setElements] = useState(content?.elements || [])
   const [selectedElement, setSelectedElement] = useState(null)
   const [draggedElement, setDraggedElement] = useState(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
-  const [viewMode, setViewMode] = useState('mixed') // 'mixed', 'overlay-only'
+  const [isFullscreen, setIsFullscreen] = useState(isEditable)
+  const [canvasSize, setCanvasSize] = useState({ width: 1200, height: 800 })
   const canvasRef = useRef(null)
 
   useEffect(() => {
     setElements(content?.elements || [])
   }, [content])
 
-  // Separate flow elements from overlay elements
-  const flowElementsList = elements.filter(el => flowElements.includes(el.type))
-  const overlayElementsList = elements.filter(el => 
-    viewMode === 'overlay-only' 
-      ? !flowElements.includes(el.type)
-      : overlayElements.includes(el.type)
-  )
-
-  const onDragEnd = (result) => {
-    if (!result.destination || !isEditable) return
-
-    const newFlowElements = Array.from(flowElementsList)
-    const [reorderedItem] = newFlowElements.splice(result.source.index, 1)
-    newFlowElements.splice(result.destination.index, 0, reorderedItem)
-
-    const newElements = [...newFlowElements, ...overlayElementsList]
-    setElements(newElements)
-    if (onSave) {
-      onSave({ elements: newElements })
+  useEffect(() => {
+    if (isEditable) {
+      // Update canvas size to match viewport
+      const updateCanvasSize = () => {
+        if (canvasRef.current) {
+          const rect = canvasRef.current.getBoundingClientRect()
+          setCanvasSize({ width: rect.width, height: rect.height })
+        }
+      }
+      
+      updateCanvasSize()
+      window.addEventListener('resize', updateCanvasSize)
+      
+      return () => window.removeEventListener('resize', updateCanvasSize)
     }
-  }
+  }, [isEditable])
 
   const updateElement = (elementId, newProps) => {
     const newElements = elements.map(el =>
@@ -95,19 +81,14 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
       props: getDefaultProps(type)
     }
     
-    // Set initial position for overlay elements
-    if (overlayElements.includes(type) || viewMode === 'overlay-only') {
-      // Try to center elements or place them in a grid
-      const existingOverlays = overlayElementsList.length
-      const gridCol = existingOverlays % 3
-      const gridRow = Math.floor(existingOverlays / 3)
-      
-      newElement.props.position = {
-        x: 100 + (gridCol * 220), // Space elements 220px apart
-        y: 100 + (gridRow * 150)  // Stack rows 150px apart
-      }
-      newElement.props.width = newElement.props.width || 200
-      newElement.props.height = newElement.props.height || 100
+    // Position new elements in center with slight offset for each new element
+    const existingElements = elements.length
+    const centerX = canvasSize.width / 2 - 100 // Offset by half default width
+    const centerY = 100 + (existingElements * 50) // Stack with offset
+    
+    newElement.props.position = {
+      x: Math.max(50, centerX),
+      y: Math.max(50, centerY)
     }
     
     const newElements = [...elements, newElement]
@@ -126,33 +107,24 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
     }
   }
 
-  const centerElements = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    // Get the actual canvas dimensions
-    const canvasRect = canvas.getBoundingClientRect()
-    const centerX = canvasRect.width / 2
-    const totalElements = overlayElementsList.length
+  const duplicateElement = (element) => {
+    const newElement = {
+      ...element,
+      id: `${element.type}-${Date.now()}`,
+      props: {
+        ...element.props,
+        position: {
+          x: (element.props.position?.x || 0) + 20,
+          y: (element.props.position?.y || 0) + 20
+        }
+      }
+    }
     
-    if (totalElements === 0) return
-
-    // Arrange elements in a horizontal line, centered
-    const elementWidth = 200
-    const spacing = 20
-    const totalWidth = (totalElements * elementWidth) + ((totalElements - 1) * spacing)
-    const startX = centerX - (totalWidth / 2)
-    
-    overlayElementsList.forEach((element, index) => {
-      const newX = Math.max(0, startX + (index * (elementWidth + spacing)))
-      updateElement(element.id, {
-        position: { 
-          x: newX, 
-          y: element.props.position?.y || 100 
-        },
-        width: elementWidth
-      })
-    })
+    const newElements = [...elements, newElement]
+    setElements(newElements)
+    if (onSave) {
+      onSave({ elements: newElements })
+    }
   }
 
   // Element dragging handlers
@@ -181,7 +153,7 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
     const newX = e.clientX - rect.left - dragOffset.x
     const newY = e.clientY - rect.top - dragOffset.y
     
-    // Constrain to canvas bounds
+    // Constrain to canvas bounds with element dimensions
     const elementWidth = draggedElement.props.width || 200
     const elementHeight = draggedElement.props.height || 100
     const constrainedX = Math.max(0, Math.min(newX, rect.width - elementWidth))
@@ -221,96 +193,96 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         animation: 'fade-in',
         position: { x: 100, y: 100 },
         width: 400,
-        height: 300
+        height: 200,
+        zIndex: 10
       },
       text: {
         content: 'Enter your text here...',
         fontSize: 'text-base',
-        textAlign: 'left',
+        textAlign: 'center',
         animation: 'fade-in',
         position: { x: 100, y: 100 },
-        width: 200,
-        height: 100
+        width: 300,
+        height: 80,
+        zIndex: 10,
+        backgroundColor: 'transparent',
+        textColor: 'text-white',
+        padding: 'p-4'
       },
       image: {
-        src: '',
+        src: 'https://via.placeholder.com/300x200',
         alt: 'Image',
-        size: 'medium',
-        alignment: 'center',
         animation: 'fade-in',
         position: { x: 100, y: 100 },
-        width: 200,
-        height: 150
+        width: 300,
+        height: 200,
+        zIndex: 10
       },
       button: {
         text: 'Click Me',
         link: '#',
         style: 'primary',
         size: 'medium',
-        alignment: 'center',
         animation: 'fade-in',
         position: { x: 100, y: 100 },
-        width: 120,
-        height: 40
+        width: 150,
+        height: 50,
+        zIndex: 10
       },
-      contact: {
-        title: 'Contact Us',
-        fields: ['name', 'email', 'message'],
-        animation: 'fade-in',
+      navbar: {
+        brand: 'Brand',
+        links: [
+          { text: 'Home', url: '#' },
+          { text: 'About', url: '#about' },
+          { text: 'Contact', url: '#contact' }
+        ],
+        position: { x: 0, y: 0 },
+        width: 1200,
+        height: 60,
+        zIndex: 50,
+        backgroundColor: 'bg-black/90',
+        textColor: 'text-white'
+      },
+      footer: {
+        content: 'Copyright 2024. All rights reserved.',
+        links: [],
+        position: { x: 0, y: 700 },
+        width: 1200,
+        height: 100,
+        zIndex: 10,
+        backgroundColor: 'bg-gray-900',
+        textColor: 'text-gray-300'
+      },
+      section: {
+        content: '',
+        backgroundColor: 'bg-gray-800/50',
+        position: { x: 50, y: 100 },
+        width: 500,
+        height: 300,
+        zIndex: 5,
+        padding: 'p-8'
+      },
+      card: {
+        title: 'Card Title',
+        content: 'Card content goes here...',
+        image: '',
         position: { x: 100, y: 100 },
         width: 300,
-        height: 400
-      },
-      gallery: {
-        images: [],
-        columns: 3,
-        spacing: 'medium',
-        animation: 'fade-in',
-        position: { x: 100, y: 100 },
-        width: 400,
-        height: 300
-      },
-      video: {
-        src: '',
-        autoplay: false,
-        muted: true,
-        loop: false,
-        animation: 'fade-in',
-        position: { x: 100, y: 100 },
-        width: 400,
-        height: 225
-      },
-      spacer: {
-        height: 'medium',
-        position: { x: 100, y: 100 },
-        width: 300,
-        height: 50
-      },
-      divider: {
-        style: 'line',
-        color: 'white',
-        thickness: 'thin',
-        position: { x: 100, y: 100 },
-        width: 300,
-        height: 20
-      },
-      testimonial: {
-        quote: 'Amazing experience!',
-        author: 'Anonymous',
-        role: '',
-        avatar: '',
-        animation: 'fade-in',
-        position: { x: 100, y: 100 },
-        width: 300,
-        height: 200
+        height: 250,
+        zIndex: 10,
+        backgroundColor: 'bg-white/10',
+        borderRadius: 'rounded-lg'
       },
       backgroundImage: {
-        backgroundImage: '',
+        backgroundImage: 'https://via.placeholder.com/1200x800',
         overlayOpacity: 0.6,
         overlayColor: 'black',
-        minHeight: 'min-h-screen',
-        animation: 'fade-in'
+        position: { x: 0, y: 0 },
+        width: 1200,
+        height: 800,
+        zIndex: 1
       },
+      // Legacy floating components
       floatingText: {
         content: 'Floating Text',
         fontSize: 'text-2xl',
@@ -319,292 +291,323 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         backgroundColor: 'bg-black/50',
         padding: 'px-6 py-3',
         borderRadius: 'rounded-lg',
-        position: { x: 50, y: 50 },
+        position: { x: 100, y: 100 },
         width: 200,
         height: 60,
-        animation: 'fade-in'
+        zIndex: 20
       },
       floatingButton: {
         text: 'Floating Button',
         link: '#',
         style: 'primary',
         size: 'medium',
-        position: { x: 50, y: 50 },
+        position: { x: 100, y: 100 },
         width: 150,
         height: 40,
-        animation: 'fade-in'
+        zIndex: 20
       }
     }
     return defaults[type] || {}
   }
+
+  // Sort elements by zIndex for proper layering
+  const sortedElements = [...elements].sort((a, b) => (a.props.zIndex || 10) - (b.props.zIndex || 10))
   
+  if (!isEditable) {
+    // Preview mode - render normally
+    return (
+      <div className="min-h-screen relative">
+        {sortedElements.map((element) => {
+          const Component = componentMap[element.type]
+          if (!Component) return null
+
+          return (
+            <div
+              key={element.id}
+              className="absolute"
+              style={{
+                left: `${element.props.position?.x || 0}px`,
+                top: `${element.props.position?.y || 0}px`,
+                width: `${element.props.width || 200}px`,
+                minHeight: `${element.props.height || 100}px`,
+                zIndex: element.props.zIndex || 10
+              }}
+            >
+              <Component {...element.props} />
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen relative" ref={canvasRef}>
-      {isEditable && (
-        <div className="fixed top-20 right-4 z-50 space-y-2">
-          <ElementToolbar 
-            onAddElement={addElement} 
-            onCenterElements={centerElements}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
+    <div className="fixed inset-0 bg-black z-50 flex">
+      {/* Sidebar Toolbar */}
+      <div className="w-80 bg-gray-900 border-r border-gray-700 flex flex-col">
+        <ElementToolbar 
+          onAddElement={addElement}
+          onClose={onClose}
+        />
+        
+        {selectedElement && (
+          <ElementEditor
+            element={selectedElement}
+            onUpdate={updateElement}
+            onRemove={removeElement}
+            onDuplicate={duplicateElement}
+            onClose={() => setSelectedElement(null)}
           />
-          {selectedElement && (
-            <ElementEditor
-              element={selectedElement}
-              onUpdate={updateElement}
-              onRemove={removeElement}
-              onClose={() => setSelectedElement(null)}
-            />
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Flow Elements (backgrounds, spacers) */}
-      {viewMode === 'mixed' && (
-        <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId="page-elements">
-            {(provided) => (
-              <div
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-                className="min-h-screen"
+      {/* Main Canvas */}
+      <div className="flex-1 relative overflow-hidden">
+        {/* Canvas Header */}
+        <div className="absolute top-0 left-0 right-0 bg-black/80 backdrop-blur-sm border-b border-gray-700 z-40 p-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <h2 className="text-white font-semibold">Page Builder</h2>
+              <div className="text-sm text-gray-400">
+                Canvas: {canvasSize.width} × {canvasSize.height}
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setElements([])}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded"
               >
-                {flowElementsList.map((element, index) => {
-                  const Component = componentMap[element.type]
-                  if (!Component) return null
-
-                  return (
-                    <Draggable
-                      key={element.id}
-                      draggableId={element.id}
-                      index={index}
-                      isDragDisabled={!isEditable}
-                    >
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className={`relative ${
-                            isEditable ? 'group' : ''
-                          } ${
-                            snapshot.isDragging ? 'opacity-50' : ''
-                          }`}
-                        >
-                          {isEditable && (
-                            <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <div className="flex space-x-2">
-                                <div
-                                  {...provided.dragHandleProps}
-                                  className="bg-nightshade-600 text-white px-2 py-1 rounded text-xs hover:bg-nightshade-700 cursor-move"
-                                >
-                                  ⋮⋮
-                                </div>
-                                <button
-                                  onClick={() => setSelectedElement(element)}
-                                  className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
-                                >
-                                  Edit
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                          <Component
-                            {...element.props}
-                            isEditing={isEditable}
-                            onUpdate={(newProps) => updateElement(element.id, newProps)}
-                          />
-                        </div>
-                      )}
-                    </Draggable>
-                  )
-                })}
-                {provided.placeholder}
-
-                {flowElementsList.length === 0 && overlayElementsList.length === 0 && isEditable && (
-                  <div className="min-h-screen flex items-center justify-center">
-                    <div className="text-center">
-                      <h2 className="text-2xl font-bold mb-4 text-gray-400">
-                        Start Building Your Page
-                      </h2>
-                      <p className="text-gray-500 mb-8">
-                        Add elements using the toolbar on the right
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
-      )}
-
-      {/* Overlay Elements */}
-      {overlayElementsList.map((element) => {
-        const Component = componentMap[element.type]
-        if (!Component) return null
-
-        const isSelected = selectedElement?.id === element.id
-
-        return (
-          <div
-            key={element.id}
-            className={`absolute z-30 ${isEditable ? 'group' : ''} ${
-              isDragging && draggedElement?.id === element.id ? 'opacity-75' : ''
-            } ${
-              isSelected ? 'ring-2 ring-blue-400 ring-opacity-50' : ''
-            }`}
-            style={{
-              left: `${element.props.position?.x || 0}px`,
-              top: `${element.props.position?.y || 0}px`,
-              width: `${element.props.width || 200}px`,
-              minHeight: `${element.props.height || 100}px`,
-              cursor: isEditable ? 'move' : 'default'
-            }}
-            onMouseDown={(e) => handleElementMouseDown(e, element)}
-          >
-            {isEditable && (
-              <div className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity z-40">
-                <div className="flex space-x-1 bg-black/80 rounded px-2 py-1">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedElement(element)
-                    }}
-                    className="text-blue-400 hover:text-blue-300 text-xs px-1"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      removeElement(element.id)
-                    }}
-                    className="text-red-400 hover:text-red-300 text-xs px-1"
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className={`w-full h-full ${
-              isEditable ? 'border-2 border-dashed border-transparent group-hover:border-blue-400 transition-colors' : ''
-            }`}>
-              <Component
-                {...element.props}
-                isEditing={isEditable}
-                onUpdate={(newProps) => updateElement(element.id, newProps)}
-              />
+                Clear All
+              </button>
+              <button
+                onClick={onClose}
+                className="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
+              >
+                Done
+              </button>
             </div>
           </div>
-        )
-      })}
+        </div>
+
+        {/* Canvas Area */}
+        <div 
+          ref={canvasRef}
+          className="absolute inset-0 pt-16 bg-gray-800"
+          style={{ 
+            backgroundImage: 'radial-gradient(circle, #374151 1px, transparent 1px)',
+            backgroundSize: '20px 20px'
+          }}
+        >
+          {/* Render all elements as absolute positioned overlays */}
+          {sortedElements.map((element) => {
+            const Component = componentMap[element.type]
+            if (!Component) return null
+
+            const isSelected = selectedElement?.id === element.id
+
+            return (
+              <div
+                key={element.id}
+                className={`absolute group cursor-move ${
+                  isDragging && draggedElement?.id === element.id ? 'opacity-75' : ''
+                } ${
+                  isSelected ? 'ring-2 ring-blue-400' : 'hover:ring-1 hover:ring-blue-300'
+                }`}
+                style={{
+                  left: `${element.props.position?.x || 0}px`,
+                  top: `${element.props.position?.y || 0}px`,
+                  width: `${element.props.width || 200}px`,
+                  minHeight: `${element.props.height || 100}px`,
+                  zIndex: element.props.zIndex || 10
+                }}
+                onMouseDown={(e) => handleElementMouseDown(e, element)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setSelectedElement(element)
+                }}
+              >
+                {/* Element Controls */}
+                <div className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                  <div className="flex space-x-1 bg-black/90 rounded px-2 py-1 text-xs">
+                    <span className="text-gray-300">{element.type}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        duplicateElement(element)
+                      }}
+                      className="text-blue-400 hover:text-blue-300 px-1"
+                      title="Duplicate"
+                    >
+                      ⧉
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        updateElement(element.id, { 
+                          zIndex: Math.max(1, (element.props.zIndex || 10) - 1)
+                        })
+                      }}
+                      className="text-yellow-400 hover:text-yellow-300 px-1"
+                      title="Send Back"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        updateElement(element.id, { 
+                          zIndex: (element.props.zIndex || 10) + 1
+                        })
+                      }}
+                      className="text-yellow-400 hover:text-yellow-300 px-1"
+                      title="Bring Forward"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        removeElement(element.id)
+                      }}
+                      className="text-red-400 hover:text-red-300 px-1"
+                      title="Delete"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+
+                {/* Element Resize Handles */}
+                {isSelected && (
+                  <>
+                    <div 
+                      className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 cursor-se-resize z-50"
+                      onMouseDown={(e) => {
+                        e.stopPropagation()
+                        // Add resize logic here if needed
+                      }}
+                    />
+                    <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full z-50" />
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full z-50" />
+                    <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-blue-500 rounded-full z-50" />
+                  </>
+                )}
+
+                {/* Component Wrapper */}
+                <div className="w-full h-full overflow-hidden">
+                  <Component
+                    {...element.props}
+                    isEditing={true}
+                    onUpdate={(newProps) => updateElement(element.id, newProps)}
+                  />
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Empty State */}
+          {elements.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center text-gray-400">
+                <h3 className="text-2xl font-bold mb-4">Start Building Your Page</h3>
+                <p className="mb-4">Add elements from the sidebar to get started</p>
+                <p className="text-sm">Drag and drop elements anywhere on the canvas</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
 
 // Enhanced Element Toolbar
-function ElementToolbar({ onAddElement, onCenterElements, viewMode, onViewModeChange }) {
-  const [isOpen, setIsOpen] = useState(false)
+function ElementToolbar({ onAddElement, onClose }) {
+  const [activeCategory, setActiveCategory] = useState('layout')
 
-  const elements = [
-    { type: 'hero', label: 'Hero Section', icon: '🎯', category: 'layout' },
-    { type: 'backgroundImage', label: 'Background Image', icon: '🌄', category: 'layout' },
-    { type: 'text', label: 'Text Block', icon: '📝', category: 'content' },
-    { type: 'floatingText', label: 'Floating Text', icon: '💭', category: 'content' },
-    { type: 'image', label: 'Image', icon: '🖼️', category: 'media' },
-    { type: 'button', label: 'Button', icon: '🔘', category: 'interactive' },
-    { type: 'floatingButton', label: 'Floating Button', icon: '🎈', category: 'interactive' },
-    { type: 'gallery', label: 'Gallery', icon: '🖼️', category: 'media' },
-    { type: 'video', label: 'Video', icon: '🎥', category: 'media' },
-    { type: 'contact', label: 'Contact Form', icon: '📋', category: 'interactive' },
-    { type: 'testimonial', label: 'Testimonial', icon: '💬', category: 'content' },
-    { type: 'spacer', label: 'Spacer', icon: '📏', category: 'layout' },
-    { type: 'divider', label: 'Divider', icon: '➖', category: 'layout' },
-  ]
-
-  const categories = {
-    layout: 'Layout',
-    content: 'Content', 
-    media: 'Media',
-    interactive: 'Interactive'
+  const elements = {
+    layout: [
+      { type: 'backgroundImage', label: 'Background', icon: '🌄' },
+      { type: 'section', label: 'Section', icon: '📦' },
+      { type: 'navbar', label: 'Navigation', icon: '🧭' },
+      { type: 'footer', label: 'Footer', icon: '⬇️' },
+      { type: 'hero', label: 'Hero Section', icon: '🎯' },
+      { type: 'spacer', label: 'Spacer', icon: '📏' },
+      { type: 'divider', label: 'Divider', icon: '➖' },
+    ],
+    content: [
+      { type: 'text', label: 'Text Block', icon: '📝' },
+      { type: 'floatingText', label: 'Floating Text', icon: '💭' },
+      { type: 'card', label: 'Card', icon: '🃏' },
+      { type: 'testimonial', label: 'Testimonial', icon: '💬' },
+    ],
+    media: [
+      { type: 'image', label: 'Image', icon: '🖼️' },
+      { type: 'gallery', label: 'Gallery', icon: '🖼️' },
+      { type: 'video', label: 'Video', icon: '🎥' },
+    ],
+    interactive: [
+      { type: 'button', label: 'Button', icon: '🔘' },
+      { type: 'floatingButton', label: 'Floating Button', icon: '🎈' },
+      { type: 'contact', label: 'Contact Form', icon: '📋' },
+    ]
   }
 
+  const categories = Object.keys(elements)
+
   return (
-    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-4 max-w-xs">
-      <div className="flex items-center justify-between mb-4">
+    <div className="flex flex-col h-full p-4 space-y-4">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-white">Elements</h3>
         <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="btn-primary flex-1 mr-2"
+          onClick={onClose}
+          className="text-gray-400 hover:text-white text-xl"
         >
-          {isOpen ? 'Close' : 'Add Element'}
-        </button>
-        <button
-          onClick={onCenterElements}
-          className="btn-secondary text-xs px-2 py-1"
-          title="Center all overlay elements"
-        >
-          Center
+          ×
         </button>
       </div>
 
-      {/* View Mode Toggle */}
-      <div className="mb-4">
-        <div className="flex bg-black/20 rounded-lg p-1">
+      {/* Category Tabs */}
+      <div className="flex flex-wrap gap-1">
+        {categories.map((category) => (
           <button
-            onClick={() => onViewModeChange('mixed')}
-            className={`flex-1 text-xs px-2 py-1 rounded ${
-              viewMode === 'mixed' ? 'bg-nightshade-600 text-white' : 'text-gray-300'
+            key={category}
+            onClick={() => setActiveCategory(category)}
+            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+              activeCategory === category
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
-            Mixed
+            {category.charAt(0).toUpperCase() + category.slice(1)}
           </button>
-          <button
-            onClick={() => onViewModeChange('overlay-only')}
-            className={`flex-1 text-xs px-2 py-1 rounded ${
-              viewMode === 'overlay-only' ? 'bg-nightshade-600 text-white' : 'text-gray-300'
-            }`}
-          >
-            Overlay
-          </button>
-        </div>
+        ))}
       </div>
 
-      {isOpen && (
-        <div className="space-y-4 max-h-80 overflow-y-auto">
-          {Object.entries(categories).map(([categoryKey, categoryName]) => {
-            const categoryElements = elements.filter(el => el.category === categoryKey)
-            if (categoryElements.length === 0) return null
-
-            return (
-              <div key={categoryKey}>
-                <h4 className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                  {categoryName}
-                </h4>
-                <div className="space-y-1">
-                  {categoryElements.map((element) => (
-                    <button
-                      key={element.type}
-                      onClick={() => {
-                        onAddElement(element.type)
-                      }}
-                      className="w-full text-left px-3 py-2 hover:bg-white/10 rounded-lg flex items-center space-x-2 transition-colors"
-                    >
-                      <span className="text-lg">{element.icon}</span>
-                      <span className="text-sm">{element.label}</span>
-                    </button>
-                  ))}
-                </div>
+      {/* Elements Grid */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="grid grid-cols-2 gap-2">
+          {elements[activeCategory]?.map((element) => (
+            <button
+              key={element.type}
+              onClick={() => onAddElement(element.type)}
+              className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-left transition-colors group"
+            >
+              <div className="text-2xl mb-2">{element.icon}</div>
+              <div className="text-sm font-medium text-white group-hover:text-blue-300">
+                {element.label}
               </div>
-            )
-          })}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   )
 }
 
 // Enhanced Element Editor
-function ElementEditor({ element, onUpdate, onRemove, onClose }) {
+function ElementEditor({ element, onUpdate, onRemove, onDuplicate, onClose }) {
   const [props, setProps] = useState(element.props)
 
   const updateProp = (key, value) => {
@@ -614,82 +617,97 @@ function ElementEditor({ element, onUpdate, onRemove, onClose }) {
   }
 
   const updatePosition = (axis, value) => {
-    const newPosition = { ...props.position, [axis]: parseFloat(value) || 0 }
+    const newPosition = { ...props.position, [axis]: parseInt(value) || 0 }
     updateProp('position', newPosition)
   }
 
   const updateSize = (dimension, value) => {
-    updateProp(dimension, parseFloat(value) || 100)
+    updateProp(dimension, parseInt(value) || 100)
   }
 
-  const isOverlayElement = overlayElements.includes(element.type)
-
   return (
-    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-4 w-80 max-h-96 overflow-y-auto">
+    <div className="flex-1 p-4 border-t border-gray-700 overflow-y-auto">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="font-bold capitalize flex items-center space-x-2">
-          <span>{element.type} Settings</span>
-          {isOverlayElement && (
-            <span className="text-xs bg-purple-500 px-2 py-0.5 rounded">OVERLAY</span>
-          )}
+        <h3 className="font-bold text-white capitalize">
+          {element.type} Settings
         </h3>
-        <button onClick={onClose} className="text-red-400 hover:text-red-300 text-lg">×</button>
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-white"
+        >
+          ×
+        </button>
       </div>
 
       <div className="space-y-4">
-        {/* Position and Size controls for overlay elements */}
-        {isOverlayElement && (
-          <div className="p-3 bg-purple-500/10 rounded border border-purple-500/30">
-            <h4 className="text-sm font-medium text-purple-300 mb-2">Position & Size</h4>
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <div>
-                <label className="block text-xs text-gray-300 mb-1">X Position</label>
-                <input
-                  type="number"
-                  value={props.position?.x || 0}
-                  onChange={(e) => updatePosition('x', e.target.value)}
-                  className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-300 mb-1">Y Position</label>
-                <input
-                  type="number"
-                  value={props.position?.y || 0}
-                  onChange={(e) => updatePosition('y', e.target.value)}
-                  className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
-                />
-              </div>
+        {/* Position & Size Controls */}
+        <div className="bg-gray-800 p-3 rounded">
+          <h4 className="text-sm font-medium text-gray-300 mb-2">Position & Size</h4>
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">X</label>
+              <input
+                type="number"
+                value={props.position?.x || 0}
+                onChange={(e) => updatePosition('x', e.target.value)}
+                className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+              />
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-xs text-gray-300 mb-1">Width</label>
-                <input
-                  type="number"
-                  value={props.width || 200}
-                  onChange={(e) => updateSize('width', e.target.value)}
-                  className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-300 mb-1">Height</label>
-                <input
-                  type="number"
-                  value={props.height || 100}
-                  onChange={(e) => updateSize('height', e.target.value)}
-                  className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
-                />
-              </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Y</label>
+              <input
+                type="number"
+                value={props.position?.y || 0}
+                onChange={(e) => updatePosition('y', e.target.value)}
+                className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+              />
             </div>
           </div>
-        )}
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Width</label>
+              <input
+                type="number"
+                value={props.width || 200}
+                onChange={(e) => updateSize('width', e.target.value)}
+                className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Height</label>
+              <input
+                type="number"
+                value={props.height || 100}
+                onChange={(e) => updateSize('height', e.target.value)}
+                className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Z-Index</label>
+            <input
+              type="number"
+              value={props.zIndex || 10}
+              onChange={(e) => updateProp('zIndex', parseInt(e.target.value) || 10)}
+              className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+        </div>
 
+        {/* Element-specific controls */}
         {renderElementEditor(element.type, props, updateProp)}
 
-        <div className="pt-4 border-t border-white/20">
+        {/* Actions */}
+        <div className="space-y-2">
+          <button
+            onClick={() => onDuplicate(element)}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition-colors"
+          >
+            Duplicate Element
+          </button>
           <button
             onClick={() => onRemove(element.id)}
-            className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition-colors"
+            className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded transition-colors"
           >
             Remove Element
           </button>
@@ -701,133 +719,386 @@ function ElementEditor({ element, onUpdate, onRemove, onClose }) {
 
 function renderElementEditor(type, props, updateProp) {
   switch (type) {
-    case 'hero':
-      return (
-        <>
-          <input
-            type="text"
-            placeholder="Title"
-            value={props.title || ''}
-            onChange={(e) => updateProp('title', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          />
-          <input
-            type="text"
-            placeholder="Subtitle"
-            value={props.subtitle || ''}
-            onChange={(e) => updateProp('subtitle', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          />
-          <select
-            value={props.backgroundType || 'gradient'}
-            onChange={(e) => updateProp('backgroundType', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          >
-            <option value="gradient">Gradient</option>
-            <option value="image">Image</option>
-            <option value="video">Video</option>
-          </select>
-        </>
-      )
     case 'text':
     case 'floatingText':
       return (
-        <>
-          <textarea
-            placeholder="Content"
-            value={props.content || ''}
-            onChange={(e) => updateProp('content', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white h-24 resize-none"
-          />
-          <select
-            value={props.fontSize || 'text-base'}
-            onChange={(e) => updateProp('fontSize', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          >
-            <option value="text-sm">Small</option>
-            <option value="text-base">Medium</option>
-            <option value="text-lg">Large</option>
-            <option value="text-xl">Extra Large</option>
-            <option value="text-2xl">2X Large</option>
-          </select>
-          {type === 'floatingText' && (
-            <>
-              <select
-                value={props.textColor || 'text-white'}
-                onChange={(e) => updateProp('textColor', e.target.value)}
-                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-              >
-                <option value="text-white">White</option>
-                <option value="text-black">Black</option>
-                <option value="text-purple-400">Purple</option>
-                <option value="text-blue-400">Blue</option>
-                <option value="text-green-400">Green</option>
-                <option value="text-red-400">Red</option>
-              </select>
-              <select
-                value={props.backgroundColor || 'bg-black/50'}
-                onChange={(e) => updateProp('backgroundColor', e.target.value)}
-                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-              >
-                <option value="bg-transparent">Transparent</option>
-                <option value="bg-black/50">Semi-Black</option>
-                <option value="bg-white/50">Semi-White</option>
-                <option value="bg-purple-600/50">Semi-Purple</option>
-                <option value="bg-blue-600/50">Semi-Blue</option>
-              </select>
-            </>
-          )}
-        </>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Content</label>
+            <textarea
+              value={props.content || ''}
+              onChange={(e) => updateProp('content', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="transparent">Transparent</option>
+              <option value="bg-black/50">Semi-Black</option>
+              <option value="bg-white/50">Semi-White</option>
+              <option value="bg-gray-800/80">Dark Gray</option>
+              <option value="bg-blue-600/50">Semi-Blue</option>
+              <option value="bg-green-600/50">Semi-Green</option>
+              <option value="bg-red-600/50">Semi-Red</option>
+              <option value="bg-purple-600/50">Semi-Purple</option>
+            </select>
+          </div>
+        </div>
       )
+
     case 'button':
     case 'floatingButton':
       return (
-        <>
-          <input
-            type="text"
-            placeholder="Button Text"
-            value={props.text || ''}
-            onChange={(e) => updateProp('text', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          />
-          <input
-            type="url"
-            placeholder="Link URL"
-            value={props.link || ''}
-            onChange={(e) => updateProp('link', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          />
-          <select
-            value={props.style || 'primary'}
-            onChange={(e) => updateProp('style', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          >
-            <option value="primary">Primary</option>
-            <option value="secondary">Secondary</option>
-            <option value="outline">Outline</option>
-          </select>
-        </>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Button Text</label>
+            <input
+              type="text"
+              value={props.text || ''}
+              onChange={(e) => updateProp('text', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Link URL</label>
+            <input
+              type="url"
+              value={props.link || ''}
+              onChange={(e) => updateProp('link', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Style</label>
+            <select
+              value={props.style || 'primary'}
+              onChange={(e) => updateProp('style', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="primary">Primary</option>
+              <option value="secondary">Secondary</option>
+              <option value="outline">Outline</option>
+              <option value="ghost">Ghost</option>
+            </select>
+          </div>
+        </div>
       )
+
     case 'image':
       return (
-        <>
-          <input
-            type="url"
-            placeholder="Image URL"
-            value={props.src || ''}
-            onChange={(e) => updateProp('src', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          />
-          <input
-            type="text"
-            placeholder="Alt Text"
-            value={props.alt || ''}
-            onChange={(e) => updateProp('alt', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          />
-        </>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Image URL</label>
+            <input
+              type="url"
+              value={props.src || ''}
+              onChange={(e) => updateProp('src', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Alt Text</label>
+            <input
+              type="text"
+              value={props.alt || ''}
+              onChange={(e) => updateProp('alt', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Border Radius</label>
+            <select
+              value={props.borderRadius || 'rounded-none'}
+              onChange={(e) => updateProp('borderRadius', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="rounded-none">None</option>
+              <option value="rounded">Small</option>
+              <option value="rounded-lg">Large</option>
+              <option value="rounded-full">Circle</option>
+            </select>
+          </div>
+        </div>
       )
+
+    case 'hero':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Title</label>
+            <input
+              type="text"
+              value={props.title || ''}
+              onChange={(e) => updateProp('title', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Subtitle</label>
+            <textarea
+              value={props.subtitle || ''}
+              onChange={(e) => updateProp('subtitle', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm h-16 resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Background Type</label>
+            <select
+              value={props.backgroundType || 'gradient'}
+              onChange={(e) => updateProp('backgroundType', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="gradient">Gradient</option>
+              <option value="image">Image</option>
+              <option value="solid">Solid Color</option>
+            </select>
+          </div>
+        </div>
+      )
+
+    case 'backgroundImage':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Background Image URL</label>
+            <input
+              type="url"
+              value={props.backgroundImage || ''}
+              onChange={(e) => updateProp('backgroundImage', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Overlay Opacity</label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value={props.overlayOpacity || 0.6}
+              onChange={(e) => updateProp('overlayOpacity', parseFloat(e.target.value))}
+              className="w-full"
+            />
+            <span className="text-xs text-gray-400">{props.overlayOpacity || 0.6}</span>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Overlay Color</label>
+            <select
+              value={props.overlayColor || 'black'}
+              onChange={(e) => updateProp('overlayColor', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="black">Black</option>
+              <option value="white">White</option>
+              <option value="blue">Blue</option>
+              <option value="purple">Purple</option>
+              <option value="green">Green</option>
+            </select>
+          </div>
+        </div>
+      )
+
+    case 'card':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Card Title</label>
+            <input
+              type="text"
+              value={props.title || ''}
+              onChange={(e) => updateProp('title', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Card Content</label>
+            <textarea
+              value={props.content || ''}
+              onChange={(e) => updateProp('content', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm h-20 resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Card Image URL</label>
+            <input
+              type="url"
+              value={props.image || ''}
+              onChange={(e) => updateProp('image', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+        </div>
+      )
+
+    case 'navbar':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Brand Name</label>
+            <input
+              type="text"
+              value={props.brand || ''}
+              onChange={(e) => updateProp('brand', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Background Color</label>
+            <select
+              value={props.backgroundColor || 'bg-black/90'}
+              onChange={(e) => updateProp('backgroundColor', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="bg-black/90">Black</option>
+              <option value="bg-white/90">White</option>
+              <option value="bg-blue-600/90">Blue</option>
+              <option value="bg-gray-800/90">Gray</option>
+            </select>
+          </div>
+        </div>
+      )
+
+    case 'section':
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Background Color</label>
+            <select
+              value={props.backgroundColor || 'bg-gray-800/50'}
+              onChange={(e) => updateProp('backgroundColor', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="transparent">Transparent</option>
+              <option value="bg-black/50">Semi-Black</option>
+              <option value="bg-white/10">Semi-White</option>
+              <option value="bg-gray-800/50">Dark Gray</option>
+              <option value="bg-blue-600/20">Light Blue</option>
+              <option value="bg-purple-600/20">Light Purple</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Padding</label>
+            <select
+              value={props.padding || 'p-8'}
+              onChange={(e) => updateProp('padding', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="p-2">Small</option>
+              <option value="p-4">Medium</option>
+              <option value="p-8">Large</option>
+              <option value="p-12">Extra Large</option>
+            </select>
+          </div>
+        </div>
+      )
+
     default:
-      return <div className="text-gray-400 text-sm">No settings available for this element type</div>
+      return (
+        <div className="text-gray-400 text-sm">
+          No additional settings available for this element type.
+        </div>
+      )
+  }
+} text-sm h-20 resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Font Size</label>
+            <select
+              value={props.fontSize || 'text-base'}
+              onChange={(e) => updateProp('fontSize', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="text-xs">Extra Small</option>
+              <option value="text-sm">Small</option>
+              <option value="text-base">Medium</option>
+              <option value="text-lg">Large</option>
+              <option value="text-xl">Extra Large</option>
+              <option value="text-2xl">2X Large</option>
+              <option value="text-3xl">3X Large</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Text Color</label>
+            <select
+              value={props.textColor || 'text-white'}
+              onChange={(e) => updateProp('textColor', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="text-white">White</option>
+              <option value="text-black">Black</option>
+              <option value="text-gray-500">Gray</option>
+              <option value="text-blue-500">Blue</option>
+              <option value="text-green-500">Green</option>
+              <option value="text-red-500">Red</option>
+              <option value="text-purple-500">Purple</option>
+              <option value="text-yellow-500">Yellow</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Background</label>
+            <select
+              value={props.backgroundColor || 'transparent'}
+              onChange={(e) => updateProp('backgroundColor', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Font Size</label>
+            <select
+              value={props.fontSize || 'text-base'}
+              onChange={(e) => updateProp('fontSize', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="text-xs">Extra Small</option>
+              <option value="text-sm">Small</option>
+              <option value="text-base">Medium</option>
+              <option value="text-lg">Large</option>
+              <option value="text-xl">Extra Large</option>
+              <option value="text-2xl">2X Large</option>
+              <option value="text-3xl">3X Large</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Text Color</label>
+            <select
+              value={props.textColor || 'text-white'}
+              onChange={(e) => updateProp('textColor', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="text-white">White</option>
+              <option value="text-black">Black</option>
+              <option value="text-gray-500">Gray</option>
+              <option value="text-blue-500">Blue</option>
+              <option value="text-green-500">Green</option>
+              <option value="text-red-500">Red</option>
+              <option value="text-purple-500">Purple</option>
+              <option value="text-yellow-500">Yellow</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Background</label>
+            <select
+              value={props.backgroundColor || 'transparent'}
+              onChange={(e) => updateProp('backgroundColor', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="transparent">Transparent</option>
+              <option value="bg-black/50">Semi-Black</option>
+              <option value="bg-white/50">Semi-White</option>
+              <option value="bg-gray-800/80">Dark Gray</option>
+              <option value="bg-blue-600/50">Semi-Blue</option>
+              <option value="bg-green-600/50">Semi-Green</option>
+              <option value="bg-red-600/50">Semi-Red</option>
+              <option value="bg-purple-600/50">Semi-Purple</option>
+            </select>
+          </div>
+        </div>
+      )
+
+    default:
+      return (
+        <div className="text-gray-400 text-sm">
+          No additional settings available for this element type.
+        </div>
+      )
   }
 }

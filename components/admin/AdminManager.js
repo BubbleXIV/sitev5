@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Plus, Edit, Trash2, Shield, Eye, EyeOff } from 'lucide-react'
-import bcrypt from 'bcryptjs'
 
 export default function AdminManager() {
   const [admins, setAdmins] = useState([])
@@ -29,43 +28,43 @@ export default function AdminManager() {
     }
   }
 
-const handleSaveAdmin = async (adminData) => {
-  try {
-    // Use SHA256 instead of bcrypt to match login.js
-    const crypto = require('crypto')
-    const hashedPassword = crypto.createHash('sha256').update(adminData.password).digest('hex')
-
-    if (currentAdmin?.id) {
-      const updateData = { username: adminData.username }
-      if (adminData.password) {
-        updateData.password_hash = hashedPassword
+  const handleSaveAdmin = async (adminData) => {
+    try {
+      // Use SHA256 instead of bcrypt to match login.js
+      const crypto = require('crypto')
+      const hashedPassword = crypto.createHash('sha256').update(adminData.password).digest('hex')
+  
+      if (currentAdmin?.id) {
+        const updateData = { username: adminData.username }
+        if (adminData.password) {
+          updateData.password_hash = hashedPassword
+        }
+  
+        const { error } = await supabase
+          .from('admins')
+          .update(updateData)
+          .eq('id', currentAdmin.id)
+  
+        if (error) throw error
+      } else {
+        const { error } = await supabase
+          .from('admins')
+          .insert([{
+            username: adminData.username,
+            password_hash: hashedPassword
+          }])
+  
+        if (error) throw error
       }
-
-      const { error } = await supabase
-        .from('admins')
-        .update(updateData)
-        .eq('id', currentAdmin.id)
-
-      if (error) throw error
-    } else {
-      const { error } = await supabase
-        .from('admins')
-        .insert([{
-          username: adminData.username,
-          password_hash: hashedPassword
-        }])
-
-      if (error) throw error
+  
+      await fetchAdmins()
+      setIsEditing(false)
+      setCurrentAdmin(null)
+    } catch (error) {
+      console.error('Error saving admin:', error)
+      alert('Error saving administrator')
     }
-
-    await fetchAdmins()
-    setIsEditing(false)
-    setCurrentAdmin(null)
-  } catch (error) {
-    console.error('Error saving admin:', error)
-    alert('Error saving administrator')
   }
-}
 
   const handleDeleteAdmin = async (id) => {
     if (admins.length <= 1) {

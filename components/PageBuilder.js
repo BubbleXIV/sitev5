@@ -798,8 +798,7 @@ function renderElementEditor(type, props, updateProp) {
       )
     default:
       return <div className="text-gray-400 text-sm">No settings available</div>
-  }
-}
+      )
 
     case 'image':
       return (
@@ -1008,6 +1007,7 @@ function renderElementEditor(type, props, updateProp) {
           </div>
         </div>
       )
+    }
 
     default:
       return (
@@ -1015,7 +1015,7 @@ function renderElementEditor(type, props, updateProp) {
           No additional settings available for this element type.
         </div>
       )
-  }
+
 } text-sm h-20 resize-none"
             />
           </div>

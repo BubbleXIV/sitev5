@@ -1,12 +1,13 @@
 'use client'
+
 import { useState, useEffect, useRef } from 'react'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 import { motion } from 'framer-motion'
+
+// Import all page builder components
 import BackgroundImageSection from '@/components/builder/BackgroundImageSection'
 import FloatingTextSection from '@/components/builder/FloatingTextSection'
 import FloatingButtonSection from '@/components/builder/FloatingButtonSection'
-
-// Import all page builder components
 import HeroSection from '@/components/builder/HeroSection'
 import TextSection from '@/components/builder/TextSection'
 import ImageSection from '@/components/builder/ImageSection'
@@ -18,6 +19,7 @@ import SpacerSection from '@/components/builder/SpacerSection'
 import DividerSection from '@/components/builder/DividerSection'
 import TestimonialSection from '@/components/builder/TestimonialSection'
 
+// Map component types to actual components
 const componentMap = {
   hero: HeroSection,
   text: TextSection,
@@ -34,53 +36,77 @@ const componentMap = {
   floatingButton: FloatingButtonSection,
 }
 
-// All elements that can be positioned as overlays
+// Elements to be treated as overlays with absolute positioning
 const overlayElements = [
-  'floatingText', 'floatingButton', 'text', 'image', 'button', 
-  'gallery', 'video', 'testimonial', 'contact', 'hero', 'divider', 'spacer'
+  'floatingText',
+  'floatingButton',
+  'text',
+  'image',
+  'button',
+  'gallery',
+  'video',
+  'testimonial',
+  'contact',
+  'hero',
+  'divider',
+  'spacer'
 ]
 
-// Elements that should remain in document flow (backgrounds only)
+// Elements to remain in document flow (backgrounds only)
 const flowElements = ['backgroundImage']
 
 export default function PageBuilder({ content, isEditable = false, onSave }) {
+  // State with full elements list
   const [elements, setElements] = useState(content?.elements || [])
+  // Currently selected element id & dragged element states
   const [selectedElement, setSelectedElement] = useState(null)
   const [draggedElement, setDraggedElement] = useState(null)
+  // Mouse drag offset to maintain relative cursor position on drag
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  // Flag whether dragging is active
   const [isDragging, setIsDragging] = useState(false)
-  const [viewMode, setViewMode] = useState('mixed') // 'mixed', 'overlay-only'
+  // View mode: mixed shows all, overlay-only hides flow elems
+  const [viewMode, setViewMode] = useState('mixed')
+
+  // Canvas ref expanded to full viewport dimensions for proper centering
   const canvasRef = useRef(null)
 
   useEffect(() => {
     setElements(content?.elements || [])
   }, [content])
 
-  // Separate flow elements from overlay elements
+  // Separate elements to flow or overlay, adjusted for view mode
   const flowElementsList = elements.filter(el => flowElements.includes(el.type))
-  const overlayElementsList = elements.filter(el => 
-    viewMode === 'overlay-only' 
+  const overlayElementsList = elements.filter(el =>
+    viewMode === 'overlay-only'
       ? !flowElements.includes(el.type)
       : overlayElements.includes(el.type)
   )
 
+  // Enhanced drag end handler for flow elements reorder only
   const onDragEnd = (result) => {
     if (!result.destination || !isEditable) return
 
     const newFlowElements = Array.from(flowElementsList)
+    // Reorder dragged element within flow list
     const [reorderedItem] = newFlowElements.splice(result.source.index, 1)
     newFlowElements.splice(result.destination.index, 0, reorderedItem)
 
+    // Merge reordered flow with overlay elements, preserving overlay order
     const newElements = [...newFlowElements, ...overlayElementsList]
     setElements(newElements)
+
     if (onSave) {
       onSave({ elements: newElements })
     }
   }
 
+  // Function to update an element's properties by id with saving capability
   const updateElement = (elementId, newProps) => {
     const newElements = elements.map(el =>
-      el.id === elementId ? { ...el, props: { ...el.props, ...newProps } } : el
+      el.id === elementId
+        ? { ...el, props: { ...el.props, ...newProps } }
+        : el
     )
     setElements(newElements)
     if (onSave) {
@@ -88,28 +114,27 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
     }
   }
 
+    // Add new element to page builder
   const addElement = (type) => {
     const newElement = {
       id: `${type}-${Date.now()}`,
       type,
-      props: getDefaultProps(type)
+      props: getDefaultProps(type),
     }
-    
-    // Set initial position for overlay elements
+
+    // Set initial position for overlays
     if (overlayElements.includes(type) || viewMode === 'overlay-only') {
-      // Try to center elements or place them in a grid
       const existingOverlays = overlayElementsList.length
       const gridCol = existingOverlays % 3
       const gridRow = Math.floor(existingOverlays / 3)
-      
       newElement.props.position = {
-        x: 100 + (gridCol * 220), // Space elements 220px apart
-        y: 100 + (gridRow * 150)  // Stack rows 150px apart
+        x: 100 + gridCol * 220,
+        y: 100 + gridRow * 150,
       }
       newElement.props.width = newElement.props.width || 200
       newElement.props.height = newElement.props.height || 100
     }
-    
+
     const newElements = [...elements, newElement]
     setElements(newElements)
     if (onSave) {
@@ -117,8 +142,9 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
     }
   }
 
+  // Remove element by ID
   const removeElement = (elementId) => {
-    const newElements = elements.filter(el => el.id !== elementId)
+    const newElements = elements.filter((el) => el.id !== elementId)
     setElements(newElements)
     setSelectedElement(null)
     if (onSave) {
@@ -126,90 +152,88 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
     }
   }
 
+  // Center overlay elements horizontally in the canvas
   const centerElements = () => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    // Get the actual canvas dimensions
     const canvasRect = canvas.getBoundingClientRect()
     const centerX = canvasRect.width / 2
     const totalElements = overlayElementsList.length
-    
     if (totalElements === 0) return
 
-    // Arrange elements in a horizontal line, centered
     const elementWidth = 200
     const spacing = 20
-    const totalWidth = (totalElements * elementWidth) + ((totalElements - 1) * spacing)
-    const startX = centerX - (totalWidth / 2)
-    
+    const totalWidth = totalElements * elementWidth + (totalElements - 1) * spacing
+    const startX = centerX - totalWidth / 2
+
     overlayElementsList.forEach((element, index) => {
-      const newX = Math.max(0, startX + (index * (elementWidth + spacing)))
+      const newX = Math.max(0, startX + index * (elementWidth + spacing))
       updateElement(element.id, {
-        position: { 
-          x: newX, 
-          y: element.props.position?.y || 100 
-        },
-        width: elementWidth
+        position: { x: newX, y: element.props.position?.y || 100 },
+        width: elementWidth,
       })
     })
   }
 
-  // Element dragging handlers
+  // Mouse down begins drag on overlay element
   const handleElementMouseDown = (e, element) => {
     if (!isEditable) return
-    
     const rect = canvasRef.current?.getBoundingClientRect()
     if (!rect) return
-    
+
     const offsetX = e.clientX - rect.left - (element.props.position?.x || 0)
     const offsetY = e.clientY - rect.top - (element.props.position?.y || 0)
-    
+
     setDraggedElement(element)
     setDragOffset({ x: offsetX, y: offsetY })
     setIsDragging(true)
     setSelectedElement(element)
-    
+
     e.preventDefault()
     e.stopPropagation()
   }
 
+  // Mouse move updates position of dragged element
   const handleMouseMove = (e) => {
     if (!isDragging || !draggedElement || !canvasRef.current) return
-    
+
     const rect = canvasRef.current.getBoundingClientRect()
     const newX = e.clientX - rect.left - dragOffset.x
     const newY = e.clientY - rect.top - dragOffset.y
-    
-    // Constrain to canvas bounds
+
+    // Constrain movement within canvas boundary
     const elementWidth = draggedElement.props.width || 200
     const elementHeight = draggedElement.props.height || 100
+
     const constrainedX = Math.max(0, Math.min(newX, rect.width - elementWidth))
     const constrainedY = Math.max(0, Math.min(newY, rect.height - elementHeight))
-    
-    updateElement(draggedElement.id, { 
-      position: { x: constrainedX, y: constrainedY }
+
+    updateElement(draggedElement.id, {
+      position: { x: constrainedX, y: constrainedY },
     })
   }
 
+  // Mouse up ends dragging session
   const handleMouseUp = () => {
     setIsDragging(false)
     setDraggedElement(null)
     setDragOffset({ x: 0, y: 0 })
   }
 
+  // Add and remove mouse event listeners dynamically based on drag state
   useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove)
       document.addEventListener('mouseup', handleMouseUp)
     }
-
     return () => {
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
   }, [isDragging, draggedElement, dragOffset])
 
+  // Returns default properties for new elements by type
   const getDefaultProps = (type) => {
     const defaults = {
       hero: {
@@ -221,7 +245,7 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         animation: 'fade-in',
         position: { x: 100, y: 100 },
         width: 400,
-        height: 300
+        height: 300,
       },
       text: {
         content: 'Enter your text here...',
@@ -230,7 +254,7 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         animation: 'fade-in',
         position: { x: 100, y: 100 },
         width: 200,
-        height: 100
+        height: 100,
       },
       image: {
         src: '',
@@ -240,7 +264,7 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         animation: 'fade-in',
         position: { x: 100, y: 100 },
         width: 200,
-        height: 150
+        height: 150,
       },
       button: {
         text: 'Click Me',
@@ -251,7 +275,7 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         animation: 'fade-in',
         position: { x: 100, y: 100 },
         width: 120,
-        height: 40
+        height: 40,
       },
       contact: {
         title: 'Contact Us',
@@ -259,7 +283,7 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         animation: 'fade-in',
         position: { x: 100, y: 100 },
         width: 300,
-        height: 400
+        height: 400,
       },
       gallery: {
         images: [],
@@ -268,7 +292,7 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         animation: 'fade-in',
         position: { x: 100, y: 100 },
         width: 400,
-        height: 300
+        height: 300,
       },
       video: {
         src: '',
@@ -278,13 +302,13 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         animation: 'fade-in',
         position: { x: 100, y: 100 },
         width: 400,
-        height: 225
+        height: 225,
       },
       spacer: {
         height: 'medium',
         position: { x: 100, y: 100 },
         width: 300,
-        height: 50
+        height: 50,
       },
       divider: {
         style: 'line',
@@ -292,7 +316,7 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         thickness: 'thin',
         position: { x: 100, y: 100 },
         width: 300,
-        height: 20
+        height: 20,
       },
       testimonial: {
         quote: 'Amazing experience!',
@@ -302,14 +326,14 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         animation: 'fade-in',
         position: { x: 100, y: 100 },
         width: 300,
-        height: 200
+        height: 200,
       },
       backgroundImage: {
         backgroundImage: '',
         overlayOpacity: 0.6,
         overlayColor: 'black',
         minHeight: 'min-h-screen',
-        animation: 'fade-in'
+        animation: 'fade-in',
       },
       floatingText: {
         content: 'Floating Text',
@@ -322,7 +346,7 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         position: { x: 50, y: 50 },
         width: 200,
         height: 60,
-        animation: 'fade-in'
+        animation: 'fade-in',
       },
       floatingButton: {
         text: 'Floating Button',
@@ -332,502 +356,243 @@ export default function PageBuilder({ content, isEditable = false, onSave }) {
         position: { x: 50, y: 50 },
         width: 150,
         height: 40,
-        animation: 'fade-in'
-      }
+        animation: 'fade-in',
+      },
     }
     return defaults[type] || {}
   }
-  
-  return (
-    <div className="min-h-screen relative" ref={canvasRef}>
-      {isEditable && (
-        <div className="fixed top-20 right-4 z-50 space-y-2">
-          <ElementToolbar 
-            onAddElement={addElement} 
-            onCenterElements={centerElements}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
+
+  // Snap to grid helper function
+  const snapToGrid = (value, gridSize = 10) => {
+    return Math.round(value / gridSize) * gridSize
+  }
+
+  // Update overlay element position with snapping constraints
+  const updateOverlayPosition = (elementId, newX, newY) => {
+    const snappedX = snapToGrid(newX)
+    const snappedY = snapToGrid(newY)
+    updateElement(elementId, { position: { x: snappedX, y: snappedY } })
+  }
+
+  // Render individual element component by type
+  const renderElement = (element) => {
+    const Component = componentMap[element.type]
+    if (!Component) return null
+    return <Component key={element.id} {...element.props} />
+  }
+
+  // Render overlay elements with drag, select, and resize handlers
+  const renderOverlayElement = (element, index) => {
+    const isSelected = selectedElement?.id === element.id
+
+    const style = {
+      position: 'absolute',
+      left: element.props.position?.x || 0,
+      top: element.props.position?.y || 0,
+      width: element.props.width || 'auto',
+      height: element.props.height || 'auto',
+      zIndex: isSelected ? 1000 : 10 + index,
+      border: isSelected ? '2px solid #007BFF' : 'none',
+      cursor: isEditable ? 'move' : 'default',
+      backgroundColor: 'transparent',
+    }
+
+    return (
+      <div
+        key={element.id}
+        style={style}
+        onMouseDown={(e) => handleElementMouseDown(e, element)}
+      >
+        {renderElement(element)}
+        {isSelected && isEditable && (
+          <ResizeHandles
+            element={element}
+            onResize={(w, h) => updateElement(element.id, { width: w, height: h })}
           />
-          {selectedElement && (
-            <ElementEditor
-              element={selectedElement}
-              onUpdate={updateElement}
-              onRemove={removeElement}
-              onClose={() => setSelectedElement(null)}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Flow Elements (backgrounds, spacers) */}
-      {viewMode === 'mixed' && (
-        <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId="page-elements">
-            {(provided) => (
-              <div
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-                className="min-h-screen"
-              >
-                {flowElementsList.map((element, index) => {
-                  const Component = componentMap[element.type]
-                  if (!Component) return null
-
-                  return (
-                    <Draggable
-                      key={element.id}
-                      draggableId={element.id}
-                      index={index}
-                      isDragDisabled={!isEditable}
-                    >
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className={`relative ${
-                            isEditable ? 'group' : ''
-                          } ${
-                            snapshot.isDragging ? 'opacity-50' : ''
-                          }`}
-                        >
-                          {isEditable && (
-                            <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <div className="flex space-x-2">
-                                <div
-                                  {...provided.dragHandleProps}
-                                  className="bg-nightshade-600 text-white px-2 py-1 rounded text-xs hover:bg-nightshade-700 cursor-move"
-                                >
-                                  ⋮⋮
-                                </div>
-                                <button
-                                  onClick={() => setSelectedElement(element)}
-                                  className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
-                                >
-                                  Edit
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                          <Component
-                            {...element.props}
-                            isEditing={isEditable}
-                            onUpdate={(newProps) => updateElement(element.id, newProps)}
-                          />
-                        </div>
-                      )}
-                    </Draggable>
-                  )
-                })}
-                {provided.placeholder}
-
-                {flowElementsList.length === 0 && overlayElementsList.length === 0 && isEditable && (
-                  <div className="min-h-screen flex items-center justify-center">
-                    <div className="text-center">
-                      <h2 className="text-2xl font-bold mb-4 text-gray-400">
-                        Start Building Your Page
-                      </h2>
-                      <p className="text-gray-500 mb-8">
-                        Add elements using the toolbar on the right
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
-      )}
-
-      {/* Overlay Elements */}
-      {overlayElementsList.map((element) => {
-        const Component = componentMap[element.type]
-        if (!Component) return null
-
-        const isSelected = selectedElement?.id === element.id
-
-        return (
-          <div
-            key={element.id}
-            className={`absolute z-30 ${isEditable ? 'group' : ''} ${
-              isDragging && draggedElement?.id === element.id ? 'opacity-75' : ''
-            } ${
-              isSelected ? 'ring-2 ring-blue-400 ring-opacity-50' : ''
-            }`}
-            style={{
-              left: `${element.props.position?.x || 0}px`,
-              top: `${element.props.position?.y || 0}px`,
-              width: `${element.props.width || 200}px`,
-              minHeight: `${element.props.height || 100}px`,
-              cursor: isEditable ? 'move' : 'default'
-            }}
-            onMouseDown={(e) => handleElementMouseDown(e, element)}
-          >
-            {isEditable && (
-              <div className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity z-40">
-                <div className="flex space-x-1 bg-black/80 rounded px-2 py-1">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedElement(element)
-                    }}
-                    className="text-blue-400 hover:text-blue-300 text-xs px-1"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      removeElement(element.id)
-                    }}
-                    className="text-red-400 hover:text-red-300 text-xs px-1"
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className={`w-full h-full ${
-              isEditable ? 'border-2 border-dashed border-transparent group-hover:border-blue-400 transition-colors' : ''
-            }`}>
-              <Component
-                {...element.props}
-                isEditing={isEditable}
-                onUpdate={(newProps) => updateElement(element.id, newProps)}
-              />
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// Enhanced Element Toolbar
-function ElementToolbar({ onAddElement, onCenterElements, viewMode, onViewModeChange }) {
-  const [isOpen, setIsOpen] = useState(false)
-
-  const elements = [
-    { type: 'hero', label: 'Hero Section', icon: '🎯', category: 'layout' },
-    { type: 'backgroundImage', label: 'Background Image', icon: '🌄', category: 'layout' },
-    { type: 'text', label: 'Text Block', icon: '📝', category: 'content' },
-    { type: 'floatingText', label: 'Floating Text', icon: '💭', category: 'content' },
-    { type: 'image', label: 'Image', icon: '🖼️', category: 'media' },
-    { type: 'button', label: 'Button', icon: '🔘', category: 'interactive' },
-    { type: 'floatingButton', label: 'Floating Button', icon: '🎈', category: 'interactive' },
-    { type: 'gallery', label: 'Gallery', icon: '🖼️', category: 'media' },
-    { type: 'video', label: 'Video', icon: '🎥', category: 'media' },
-    { type: 'contact', label: 'Contact Form', icon: '📋', category: 'interactive' },
-    { type: 'testimonial', label: 'Testimonial', icon: '💬', category: 'content' },
-    { type: 'spacer', label: 'Spacer', icon: '📏', category: 'layout' },
-    { type: 'divider', label: 'Divider', icon: '➖', category: 'layout' },
-  ]
-
-  const categories = {
-    layout: 'Layout',
-    content: 'Content', 
-    media: 'Media',
-    interactive: 'Interactive'
-  }
-
-  return (
-    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-4 max-w-xs">
-      <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="btn-primary flex-1 mr-2"
-        >
-          {isOpen ? 'Close' : 'Add Element'}
-        </button>
-        <button
-          onClick={onCenterElements}
-          className="btn-secondary text-xs px-2 py-1"
-          title="Center all overlay elements"
-        >
-          Center
-        </button>
-      </div>
-
-      {/* View Mode Toggle */}
-      <div className="mb-4">
-        <div className="flex bg-black/20 rounded-lg p-1">
-          <button
-            onClick={() => onViewModeChange('mixed')}
-            className={`flex-1 text-xs px-2 py-1 rounded ${
-              viewMode === 'mixed' ? 'bg-nightshade-600 text-white' : 'text-gray-300'
-            }`}
-          >
-            Mixed
-          </button>
-          <button
-            onClick={() => onViewModeChange('overlay-only')}
-            className={`flex-1 text-xs px-2 py-1 rounded ${
-              viewMode === 'overlay-only' ? 'bg-nightshade-600 text-white' : 'text-gray-300'
-            }`}
-          >
-            Overlay
-          </button>
-        </div>
-      </div>
-
-      {isOpen && (
-        <div className="space-y-4 max-h-80 overflow-y-auto">
-          {Object.entries(categories).map(([categoryKey, categoryName]) => {
-            const categoryElements = elements.filter(el => el.category === categoryKey)
-            if (categoryElements.length === 0) return null
-
-            return (
-              <div key={categoryKey}>
-                <h4 className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                  {categoryName}
-                </h4>
-                <div className="space-y-1">
-                  {categoryElements.map((element) => (
-                    <button
-                      key={element.type}
-                      onClick={() => {
-                        onAddElement(element.type)
-                      }}
-                      className="w-full text-left px-3 py-2 hover:bg-white/10 rounded-lg flex items-center space-x-2 transition-colors"
-                    >
-                      <span className="text-lg">{element.icon}</span>
-                      <span className="text-sm">{element.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Enhanced Element Editor
-function ElementEditor({ element, onUpdate, onRemove, onClose }) {
-  const [props, setProps] = useState(element.props)
-
-  const updateProp = (key, value) => {
-    const newProps = { ...props, [key]: value }
-    setProps(newProps)
-    onUpdate(element.id, newProps)
-  }
-
-  const updatePosition = (axis, value) => {
-    const newPosition = { ...props.position, [axis]: parseFloat(value) || 0 }
-    updateProp('position', newPosition)
-  }
-
-  const updateSize = (dimension, value) => {
-    updateProp(dimension, parseFloat(value) || 100)
-  }
-
-  const isOverlayElement = overlayElements.includes(element.type)
-
-  return (
-    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-4 w-80 max-h-96 overflow-y-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="font-bold capitalize flex items-center space-x-2">
-          <span>{element.type} Settings</span>
-          {isOverlayElement && (
-            <span className="text-xs bg-purple-500 px-2 py-0.5 rounded">OVERLAY</span>
-          )}
-        </h3>
-        <button onClick={onClose} className="text-red-400 hover:text-red-300 text-lg">×</button>
-      </div>
-
-      <div className="space-y-4">
-        {/* Position and Size controls for overlay elements */}
-        {isOverlayElement && (
-          <div className="p-3 bg-purple-500/10 rounded border border-purple-500/30">
-            <h4 className="text-sm font-medium text-purple-300 mb-2">Position & Size</h4>
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <div>
-                <label className="block text-xs text-gray-300 mb-1">X Position</label>
-                <input
-                  type="number"
-                  value={props.position?.x || 0}
-                  onChange={(e) => updatePosition('x', e.target.value)}
-                  className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-300 mb-1">Y Position</label>
-                <input
-                  type="number"
-                  value={props.position?.y || 0}
-                  onChange={(e) => updatePosition('y', e.target.value)}
-                  className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-xs text-gray-300 mb-1">Width</label>
-                <input
-                  type="number"
-                  value={props.width || 200}
-                  onChange={(e) => updateSize('width', e.target.value)}
-                  className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-300 mb-1">Height</label>
-                <input
-                  type="number"
-                  value={props.height || 100}
-                  onChange={(e) => updateSize('height', e.target.value)}
-                  className="w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
-                />
-              </div>
-            </div>
-          </div>
         )}
+      </div>
+    )
+  }
 
-        {renderElementEditor(element.type, props, updateProp)}
+  // Resize handles component (simple bottom-right drag handle)
+  const ResizeHandles = ({ element, onResize }) => {
+    const handleRef = useRef(null)
+    const [dragging, setDragging] = useState(false)
+    const [startPos, setStartPos] = useState({ x: 0, y: 0 })
+    const [startSize, setStartSize] = useState({ width: 0, height: 0 })
 
-        <div className="pt-4 border-t border-white/20">
-          <button
-            onClick={() => onRemove(element.id)}
-            className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition-colors"
-          >
-            Remove Element
+    const onMouseDown = (e) => {
+      e.stopPropagation()
+      setDragging(true)
+      setStartPos({ x: e.clientX, y: e.clientY })
+      setStartSize({ width: element.props.width, height: element.props.height })
+    }
+
+    const onMouseMove = (e) => {
+      if (!dragging) return
+      e.preventDefault()
+      const dx = e.clientX - startPos.x
+      const dy = e.clientY - startPos.y
+      const newWidth = snapToGrid(startSize.width + dx)
+      const newHeight = snapToGrid(startSize.height + dy)
+      onResize(newWidth, newHeight)
+    }
+
+    const onMouseUp = () => {
+      setDragging(false)
+    }
+
+    useEffect(() => {
+      if (dragging) {
+        document.addEventListener('mousemove', onMouseMove)
+        document.addEventListener('mouseup', onMouseUp)
+      }
+      return () => {
+        document.removeEventListener('mousemove', onMouseMove)
+        document.removeEventListener('mouseup', onMouseUp)
+      }
+    }, [dragging])
+
+    return (
+      <div
+        ref={handleRef}
+        onMouseDown={onMouseDown}
+        style={{
+          position: 'absolute',
+          right: 0,
+          bottom: 0,
+          width: 16,
+          height: 16,
+          backgroundColor: '#007BFF',
+          cursor: 'nwse-resize',
+          zIndex: 11000,
+        }}
+      />
+    )
+  }
+
+  // Layer controls to bring overlay elements forward or backward
+  const bringForward = () => {
+    if (!selectedElement) return
+    const idx = overlayElementsList.findIndex((el) => el.id === selectedElement.id)
+    if (idx < overlayElementsList.length - 1) {
+      const newOverlayOrder = [...overlayElementsList]
+      const [el] = newOverlayOrder.splice(idx, 1)
+      newOverlayOrder.splice(idx + 1, 0, el)
+      const newElements = [...flowElementsList, ...newOverlayOrder]
+      setElements(newElements)
+      if (onSave) onSave({ elements: newElements })
+    }
+  }
+
+  const sendBackward = () => {
+    if (!selectedElement) return
+    const idx = overlayElementsList.findIndex((el) => el.id === selectedElement.id)
+    if (idx > 0) {
+      const newOverlayOrder = [...overlayElementsList]
+      const [el] = newOverlayOrder.splice(idx, 1)
+      newOverlayOrder.splice(idx - 1, 0, el)
+      const newElements = [...flowElementsList, ...newOverlayOrder]
+      setElements(newElements)
+      if (onSave) onSave({ elements: newElements })
+    }
+  }
+
+  return (
+    <div
+      ref={canvasRef}
+      style={{
+        position: 'relative',
+        width: '100vw',
+        height: '100vh',
+        overflow: 'auto',
+        backgroundColor: '#f0f0f0',
+        border: '1px solid #ccc',
+        userSelect: isDragging ? 'none' : 'auto',
+        padding: 20,
+        boxSizing: 'border-box',
+      }}
+      onMouseDown={() => setSelectedElement(null)}
+    >
+      {/* Buttons for adding elements */}
+      {isEditable && (
+        <div style={{ marginBottom: 10, display: 'flex', gap: 8 }}>
+          {Object.keys(componentMap).map((type) => (
+            <button key={type} onClick={() => addElement(type)}>{`Add ${type}`}</button>
+          ))}
+          <button onClick={centerElements}>Center Overlays</button>
+          <button onClick={() => setViewMode(viewMode === 'mixed' ? 'overlay-only' : 'mixed')}>
+            {viewMode === 'mixed' ? 'Show Overlays Only' : 'Show All Elements'}
           </button>
         </div>
-      </div>
+      )}
+
+      {/* Flow elements droppable region */}
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="flow" type="flow">
+          {(provided) => (
+            <div ref={provided.innerRef} {...provided.droppableProps} style={{ width: '100%' }}>
+              {flowElementsList.map((element, index) => (
+                <Draggable key={element.id} draggableId={element.id} index={index}>
+                  {(providedFlow) => (
+                    <div
+                      ref={providedFlow.innerRef}
+                      {...providedFlow.draggableProps}
+                      {...providedFlow.dragHandleProps}
+                      style={{ marginBottom: 15, ...providedFlow.draggableProps.style }}
+                    >
+                      {renderElement(element)}
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
+
+      {/* Overlay elements droppable region */}
+      <DragDropContext onDragEnd={() => {}}>
+        <Droppable droppableId="overlay" type="overlay">
+          {(provided) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              style={{ position: 'relative', width: '100%', height: '100%' }}
+            >
+              {overlayElementsList.map((element, index) => renderOverlayElement(element, index))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
+
+      {/* Layer control panel */}
+      {selectedElement && isEditable && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 20,
+            right: 20,
+            width: 220,
+            backgroundColor: '#fff',
+            padding: 15,
+            borderRadius: 8,
+            boxShadow: '0 0 15px rgba(0,0,0,0.1)',
+            zIndex: 12000,
+          }}
+        >
+          <h4>Layer Controls ({selectedElement.type})</h4>
+          <button onClick={bringForward} style={{ marginRight: 10 }}>
+            Bring Forward
+          </button>
+          <button onClick={sendBackward}>Send Backward</button>
+          <button onClick={() => removeElement(selectedElement.id)} style={{ marginTop: 10, color: 'red' }}>
+            Delete Element
+          </button>
+        </div>
+      )}
     </div>
   )
-}
-
-function renderElementEditor(type, props, updateProp) {
-  switch (type) {
-    case 'hero':
-      return (
-        <>
-          <input
-            type="text"
-            placeholder="Title"
-            value={props.title || ''}
-            onChange={(e) => updateProp('title', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          />
-          <input
-            type="text"
-            placeholder="Subtitle"
-            value={props.subtitle || ''}
-            onChange={(e) => updateProp('subtitle', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          />
-          <select
-            value={props.backgroundType || 'gradient'}
-            onChange={(e) => updateProp('backgroundType', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          >
-            <option value="gradient">Gradient</option>
-            <option value="image">Image</option>
-            <option value="video">Video</option>
-          </select>
-        </>
-      )
-    case 'text':
-    case 'floatingText':
-      return (
-        <>
-          <textarea
-            placeholder="Content"
-            value={props.content || ''}
-            onChange={(e) => updateProp('content', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white h-24 resize-none"
-          />
-          <select
-            value={props.fontSize || 'text-base'}
-            onChange={(e) => updateProp('fontSize', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          >
-            <option value="text-sm">Small</option>
-            <option value="text-base">Medium</option>
-            <option value="text-lg">Large</option>
-            <option value="text-xl">Extra Large</option>
-            <option value="text-2xl">2X Large</option>
-          </select>
-          {type === 'floatingText' && (
-            <>
-              <select
-                value={props.textColor || 'text-white'}
-                onChange={(e) => updateProp('textColor', e.target.value)}
-                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-              >
-                <option value="text-white">White</option>
-                <option value="text-black">Black</option>
-                <option value="text-purple-400">Purple</option>
-                <option value="text-blue-400">Blue</option>
-                <option value="text-green-400">Green</option>
-                <option value="text-red-400">Red</option>
-              </select>
-              <select
-                value={props.backgroundColor || 'bg-black/50'}
-                onChange={(e) => updateProp('backgroundColor', e.target.value)}
-                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-              >
-                <option value="bg-transparent">Transparent</option>
-                <option value="bg-black/50">Semi-Black</option>
-                <option value="bg-white/50">Semi-White</option>
-                <option value="bg-purple-600/50">Semi-Purple</option>
-                <option value="bg-blue-600/50">Semi-Blue</option>
-              </select>
-            </>
-          )}
-        </>
-      )
-    case 'button':
-    case 'floatingButton':
-      return (
-        <>
-          <input
-            type="text"
-            placeholder="Button Text"
-            value={props.text || ''}
-            onChange={(e) => updateProp('text', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          />
-          <input
-            type="url"
-            placeholder="Link URL"
-            value={props.link || ''}
-            onChange={(e) => updateProp('link', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          />
-          <select
-            value={props.style || 'primary'}
-            onChange={(e) => updateProp('style', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          >
-            <option value="primary">Primary</option>
-            <option value="secondary">Secondary</option>
-            <option value="outline">Outline</option>
-          </select>
-        </>
-      )
-    case 'image':
-      return (
-        <>
-          <input
-            type="url"
-            placeholder="Image URL"
-            value={props.src || ''}
-            onChange={(e) => updateProp('src', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          />
-          <input
-            type="text"
-            placeholder="Alt Text"
-            value={props.alt || ''}
-            onChange={(e) => updateProp('alt', e.target.value)}
-            className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
-          />
-        </>
-      )
-    default:
-      return <div className="text-gray-400 text-sm">No settings available for this element type</div>
-  }
 }

@@ -716,6 +716,7 @@ function ElementEditor({ element, onUpdate, onRemove, onDuplicate, onClose }) {
     </div>
   )
 }
+
 function renderElementEditor(type, props, updateProp) {
   switch (type) {
     case 'hero':
@@ -751,7 +752,7 @@ function renderElementEditor(type, props, updateProp) {
             </select>
           </div>
         </div>
-      )
+      );
 
     case 'text':
       return (
@@ -773,7 +774,7 @@ function renderElementEditor(type, props, updateProp) {
             <option value="text-xl">Extra Large</option>
           </select>
         </>
-      )
+      );
 
     case 'button':
       return (
@@ -802,7 +803,7 @@ function renderElementEditor(type, props, updateProp) {
             <option value="outline">Outline</option>
           </select>
         </>
-      )
+      );
 
     case 'image':
       return (
@@ -826,7 +827,7 @@ function renderElementEditor(type, props, updateProp) {
             />
           </div>
         </div>
-      )
+      );
 
     case 'backgroundImage':
       return (
@@ -854,10 +855,10 @@ function renderElementEditor(type, props, updateProp) {
             <span className="text-xs text-gray-400">{props.overlayOpacity || 0.6}</span>
           </div>
         </div>
-      )
+      );
 
     default:
-      return <div className="text-gray-400 text-sm">No settings available</div>
+      return <div className="text-gray-400 text-sm">No settings available</div>;
   }
 }
 

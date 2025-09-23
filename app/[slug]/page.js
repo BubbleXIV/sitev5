@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import PageBuilder from '@/components/PageBuilder'
-import SiteFooter from '@/components/SiteFooter'
 import { notFound } from 'next/navigation'
 
 export default function DynamicPage({ params }) {
@@ -52,11 +51,8 @@ export default function DynamicPage({ params }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-xl">Loading...</div>
-        </div>
-        <SiteFooter />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
       </div>
     )
   }
@@ -65,12 +61,5 @@ export default function DynamicPage({ params }) {
     notFound()
   }
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1">
-        <PageBuilder content={pageContent} isEditable={false} />
-      </div>
-      <SiteFooter />
-    </div>
-  )
+  return <PageBuilder content={pageContent} isEditable={false} />
 }

@@ -40,6 +40,8 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
   const [draggedFloatingElement, setDraggedFloatingElement] = useState(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [isDraggingFloating, setIsDraggingFloating] = useState(false)
+  const [isResizing, setIsResizing] = useState(false)
+  const [resizeDirection, setResizeDirection] = useState(null)
   const canvasRef = useRef(null)
 
   useEffect(() => {
@@ -106,14 +108,15 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
     }
   }
 
-  // Handle floating element dragging with fixed positioning
+  // Handle floating element dragging within canvas
   const handleFloatingMouseDown = (e, element) => {
     if (!isEditable || !element.props.position) return
     
-    // Calculate offset from the element's current fixed position
-    const elementRect = e.currentTarget.getBoundingClientRect()
-    const offsetX = e.clientX - elementRect.left
-    const offsetY = e.clientY - elementRect.top
+    const rect = canvasRef.current?.getBoundingClientRect()
+    if (!rect) return
+    
+    const offsetX = e.clientX - rect.left - element.props.position.x
+    const offsetY = e.clientY - rect.top - element.props.position.y
     
     setDraggedFloatingElement(element)
     setDragOffset({ x: offsetX, y: offsetY })
@@ -125,26 +128,65 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
   }
 
   const handleFloatingMouseMove = (e) => {
-    if (!isDraggingFloating || !draggedFloatingElement) return
-    
-    // Calculate new position in viewport coordinates
-    const sidebarWidth = 320 // Width of sidebar
-    const newX = Math.max(0, Math.min(e.clientX - dragOffset.x - sidebarWidth, window.innerWidth - sidebarWidth - 200))
-    const newY = Math.max(0, e.clientY - dragOffset.y)
-    
-    updateElement(draggedFloatingElement.id, { 
-      position: { x: newX, y: newY }
-    })
+    if (isDraggingFloating && draggedFloatingElement && canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect()
+      const newX = Math.max(0, Math.min(e.clientX - rect.left - dragOffset.x, rect.width - (draggedFloatingElement.props.width || 200)))
+      const newY = Math.max(0, e.clientY - rect.top - dragOffset.y)
+      
+      updateElement(draggedFloatingElement.id, { 
+        position: { x: newX, y: newY }
+      })
+    } else if (isResizing && draggedFloatingElement && canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left
+      const mouseY = e.clientY - rect.top
+      const elementX = draggedFloatingElement.props.position.x
+      const elementY = draggedFloatingElement.props.position.y
+      
+      let newWidth = draggedFloatingElement.props.width || 200
+      let newHeight = draggedFloatingElement.props.height || 60
+      
+      switch (resizeDirection) {
+        case 'se':
+          newWidth = Math.max(50, mouseX - elementX)
+          newHeight = Math.max(30, mouseY - elementY)
+          break
+        case 's':
+          newHeight = Math.max(30, mouseY - elementY)
+          break
+        case 'e':
+          newWidth = Math.max(50, mouseX - elementX)
+          break
+      }
+      
+      updateElement(draggedFloatingElement.id, { 
+        width: newWidth,
+        height: newHeight
+      })
+    }
   }
 
   const handleFloatingMouseUp = () => {
     setIsDraggingFloating(false)
+    setIsResizing(false)
     setDraggedFloatingElement(null)
     setDragOffset({ x: 0, y: 0 })
+    setResizeDirection(null)
+  }
+
+  // Handle resize start
+  const handleResizeMouseDown = (e, element, direction) => {
+    setDraggedFloatingElement(element)
+    setIsResizing(true)
+    setResizeDirection(direction)
+    setSelectedElement(element)
+    
+    e.preventDefault()
+    e.stopPropagation()
   }
 
   useEffect(() => {
-    if (isDraggingFloating) {
+    if (isDraggingFloating || isResizing) {
       document.addEventListener('mousemove', handleFloatingMouseMove)
       document.addEventListener('mouseup', handleFloatingMouseUp)
     }
@@ -153,7 +195,7 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
       document.removeEventListener('mousemove', handleFloatingMouseMove)
       document.removeEventListener('mouseup', handleFloatingMouseUp)
     }
-  }, [isDraggingFloating, draggedFloatingElement, dragOffset])
+  }, [isDraggingFloating, isResizing, draggedFloatingElement, dragOffset, resizeDirection])
 
   const getDefaultProps = (type) => {
     const defaults = {
@@ -235,6 +277,9 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
         padding: 'px-6 py-3',
         borderRadius: 'rounded-lg',
         position: { x: 50, y: 50 },
+        width: 200,
+        height: 60,
+        isStatic: false,
         animation: 'fade-in'
       },
       floatingButton: {
@@ -243,6 +288,9 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
         style: 'primary',
         size: 'medium',
         position: { x: 50, y: 50 },
+        width: 150,
+        height: 40,
+        isStatic: false,
         animation: 'fade-in'
       }
     }
@@ -268,7 +316,7 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
           )
         })}
 
-        {/* Floating elements positioned absolutely */}
+        {/* Floating elements positioned based on isStatic setting */}
         {elements.filter(el => el.type === 'floatingText' || el.type === 'floatingButton').map((element) => {
           const Component = componentMap[element.type]
           if (!Component || !element.props.position) return null
@@ -276,10 +324,12 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
           return (
             <div
               key={element.id}
-              className="fixed z-50"
+              className={element.props.isStatic ? "absolute z-50" : "fixed z-50"}
               style={{
                 left: `${element.props.position.x}px`,
-                top: `${element.props.position.y}px`
+                top: `${element.props.position.y}px`,
+                width: `${element.props.width || 200}px`,
+                height: `${element.props.height || 60}px`
               }}
             >
               <Component
@@ -411,66 +461,86 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
         </div>
       </div>
 
-      {/* Floating elements overlay - positioned outside scrollable area */}
-      {elements.filter(el => el.type === 'floatingText' || el.type === 'floatingButton').map((element) => {
-        const Component = componentMap[element.type]
-        if (!Component || !element.props.position) return null
+        {/* Floating elements positioned within canvas */}
+        {elements.filter(el => el.type === 'floatingText' || el.type === 'floatingButton').map((element) => {
+          const Component = componentMap[element.type]
+          if (!Component || !element.props.position) return null
 
-        const isSelected = selectedElement?.id === element.id
+          const isSelected = selectedElement?.id === element.id
 
-        return (
-          <div
-            key={`floating-${element.id}`}
-            className={`fixed cursor-move group z-40 ${
-              isDraggingFloating && draggedFloatingElement?.id === element.id ? 'opacity-75' : ''
-            } ${
-              isSelected ? 'ring-2 ring-blue-400' : 'hover:ring-1 hover:ring-blue-300'
-            }`}
-            style={{
-              left: `${320 + element.props.position.x}px`, // 320px for sidebar
-              top: `${element.props.position.y}px`
-            }}
-            onMouseDown={(e) => handleFloatingMouseDown(e, element)}
-            onClick={(e) => {
-              e.stopPropagation()
-              setSelectedElement(element)
-            }}
-          >
-            {/* Floating element controls */}
-            <div className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity z-50">
-              <div className="flex space-x-1 bg-black/90 rounded px-2 py-1 text-xs">
-                <span className="text-gray-300">{element.type}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSelectedElement(element)
-                  }}
-                  className="text-blue-400 hover:text-blue-300 px-1"
-                  title="Edit"
-                >
-                  ✏️
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    removeElement(element.id)
-                  }}
-                  className="text-red-400 hover:text-red-300 px-1"
-                  title="Delete"
-                >
-                  ×
-                </button>
+          return (
+            <div
+              key={`floating-${element.id}`}
+              className={`absolute cursor-move group z-40 ${
+                isDraggingFloating && draggedFloatingElement?.id === element.id ? 'opacity-75' : ''
+              } ${
+                isSelected ? 'ring-2 ring-blue-400' : 'hover:ring-1 hover:ring-blue-300'
+              }`}
+              style={{
+                left: `${element.props.position.x}px`,
+                top: `${element.props.position.y}px`,
+                width: `${element.props.width || 200}px`,
+                height: `${element.props.height || 60}px`
+              }}
+              onMouseDown={(e) => handleFloatingMouseDown(e, element)}
+              onClick={(e) => {
+                e.stopPropagation()
+                setSelectedElement(element)
+              }}
+            >
+              {/* Floating element controls */}
+              <div className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                <div className="flex space-x-1 bg-black/90 rounded px-2 py-1 text-xs">
+                  <span className="text-gray-300">{element.type}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedElement(element)
+                    }}
+                    className="text-blue-400 hover:text-blue-300 px-1"
+                    title="Edit"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      removeElement(element.id)
+                    }}
+                    className="text-red-400 hover:text-red-300 px-1"
+                    title="Delete"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <Component
-              {...element.props}
-              isEditing={true}
-              onUpdate={(newProps) => updateElement(element.id, newProps)}
-            />
-          </div>
-        )
-      })}
+              {/* Resize handles */}
+              {isSelected && (
+                <>
+                  <div 
+                    className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 cursor-se-resize z-50"
+                    onMouseDown={(e) => handleResizeMouseDown(e, element, 'se')}
+                  />
+                  <div 
+                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-blue-500 cursor-s-resize z-50"
+                    onMouseDown={(e) => handleResizeMouseDown(e, element, 's')}
+                  />
+                  <div 
+                    className="absolute top-1/2 -translate-y-1/2 -right-1 w-3 h-3 bg-blue-500 cursor-e-resize z-50"
+                    onMouseDown={(e) => handleResizeMouseDown(e, element, 'e')}
+                  />
+                </>
+              )}
+
+              <Component
+                {...element.props}
+                isEditing={true}
+                onUpdate={(newProps) => updateElement(element.id, newProps)}
+              />
+            </div>
+          )
+        })}
     </div>
   )
 }
@@ -569,10 +639,10 @@ function ElementEditor({ element, onUpdate, onRemove, onClose }) {
       </div>
 
       <div className="space-y-4">
-        {/* Position controls for floating elements */}
+        {/* Position and size controls for floating elements */}
         {element.props.position && (
-          <div className="bg-gray-800 p-3 rounded">
-            <h4 className="text-sm font-medium text-gray-300 mb-2">Position</h4>
+          <div className="bg-gray-800 p-3 rounded space-y-3">
+            <h4 className="text-sm font-medium text-gray-300 mb-2">Position & Size</h4>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs text-gray-400 mb-1">X</label>
@@ -592,6 +662,38 @@ function ElementEditor({ element, onUpdate, onRemove, onClose }) {
                   className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
                 />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Width</label>
+                <input
+                  type="number"
+                  value={props.width || 200}
+                  onChange={(e) => updateProp('width', parseInt(e.target.value) || 200)}
+                  className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Height</label>
+                <input
+                  type="number"
+                  value={props.height || 60}
+                  onChange={(e) => updateProp('height', parseInt(e.target.value) || 60)}
+                  className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isStatic"
+                checked={props.isStatic || false}
+                onChange={(e) => updateProp('isStatic', e.target.checked)}
+                className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="isStatic" className="text-sm text-gray-300">
+                Stay in position when scrolling (Static)
+              </label>
             </div>
           </div>
         )}
@@ -663,6 +765,48 @@ function renderElementEditor(type, props, updateProp) {
           </select>
           {type === 'floatingText' && (
             <>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Shape Preset</label>
+                <select
+                  value={props.shapePreset || 'custom'}
+                  onChange={(e) => {
+                    const preset = e.target.value
+                    updateProp('shapePreset', preset)
+                    
+                    // Apply preset dimensions
+                    switch (preset) {
+                      case 'single-line':
+                        updateProp('width', 300)
+                        updateProp('height', 40)
+                        break
+                      case 'two-line':
+                        updateProp('width', 250)
+                        updateProp('height', 60)
+                        break
+                      case 'paragraph':
+                        updateProp('width', 350)
+                        updateProp('height', 120)
+                        break
+                      case 'square':
+                        updateProp('width', 200)
+                        updateProp('height', 200)
+                        break
+                      case 'wide-banner':
+                        updateProp('width', 500)
+                        updateProp('height', 80)
+                        break
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                >
+                  <option value="custom">Custom</option>
+                  <option value="single-line">Single Line</option>
+                  <option value="two-line">Two Lines</option>
+                  <option value="paragraph">Paragraph</option>
+                  <option value="square">Square</option>
+                  <option value="wide-banner">Wide Banner</option>
+                </select>
+              </div>
               <select
                 value={props.textColor || 'text-white'}
                 onChange={(e) => updateProp('textColor', e.target.value)}
@@ -674,6 +818,8 @@ function renderElementEditor(type, props, updateProp) {
                 <option value="text-blue-500">Blue</option>
                 <option value="text-red-500">Red</option>
                 <option value="text-green-500">Green</option>
+                <option value="text-yellow-500">Yellow</option>
+                <option value="text-purple-500">Purple</option>
               </select>
               <select
                 value={props.backgroundColor || 'bg-black/50'}
@@ -682,9 +828,25 @@ function renderElementEditor(type, props, updateProp) {
               >
                 <option value="bg-black/50">Semi Black</option>
                 <option value="bg-white/50">Semi White</option>
+                <option value="bg-gray-800/80">Dark Gray</option>
                 <option value="bg-blue-600/50">Semi Blue</option>
                 <option value="bg-red-600/50">Semi Red</option>
+                <option value="bg-green-600/50">Semi Green</option>
+                <option value="bg-yellow-600/50">Semi Yellow</option>
+                <option value="bg-purple-600/50">Semi Purple</option>
                 <option value="transparent">Transparent</option>
+              </select>
+              <select
+                value={props.borderRadius || 'rounded-lg'}
+                onChange={(e) => updateProp('borderRadius', e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+              >
+                <option value="rounded-none">No Rounded</option>
+                <option value="rounded-sm">Small Rounded</option>
+                <option value="rounded">Medium Rounded</option>
+                <option value="rounded-lg">Large Rounded</option>
+                <option value="rounded-xl">Extra Large Rounded</option>
+                <option value="rounded-full">Fully Rounded</option>
               </select>
             </>
           )}

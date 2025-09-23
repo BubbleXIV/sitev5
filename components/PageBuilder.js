@@ -37,9 +37,9 @@ const componentMap = {
 export default function PageBuilder({ content, isEditable = false, onSave, onClose }) {
   const [elements, setElements] = useState(content?.elements || [])
   const [selectedElement, setSelectedElement] = useState(null)
-  const [draggedElement, setDraggedElement] = useState(null)
+  const [draggedFloatingElement, setDraggedFloatingElement] = useState(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
-  const [isDragging, setIsDragging] = useState(false)
+  const [isDraggingFloating, setIsDraggingFloating] = useState(false)
   const canvasRef = useRef(null)
 
   useEffect(() => {
@@ -49,10 +49,15 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
   const onDragEnd = (result) => {
     if (!result.destination || !isEditable) return
 
-    const newElements = Array.from(elements)
-    const [reorderedItem] = newElements.splice(result.source.index, 1)
-    newElements.splice(result.destination.index, 0, reorderedItem)
+    // Only handle regular elements in drag and drop
+    const regularElements = elements.filter(el => el.type !== 'floatingText' && el.type !== 'floatingButton')
+    const floatingElements = elements.filter(el => el.type === 'floatingText' || el.type === 'floatingButton')
+    
+    const newRegularElements = Array.from(regularElements)
+    const [reorderedItem] = newRegularElements.splice(result.source.index, 1)
+    newRegularElements.splice(result.destination.index, 0, reorderedItem)
 
+    const newElements = [...newRegularElements, ...floatingElements]
     setElements(newElements)
     if (onSave) {
       onSave({ elements: newElements })
@@ -76,7 +81,7 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
       props: getDefaultProps(type)
     }
     
-    // For floating elements, position them in the center with slight offset
+    // For floating elements, add initial position
     if (type === 'floatingText' || type === 'floatingButton') {
       const existingFloating = elements.filter(el => el.type === 'floatingText' || el.type === 'floatingButton').length
       newElement.props.position = {
@@ -101,52 +106,54 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
     }
   }
 
-  // Handle floating element dragging
-  const handleFloatingElementMouseDown = (e, element) => {
+  // Handle floating element dragging with fixed positioning
+  const handleFloatingMouseDown = (e, element) => {
     if (!isEditable || !element.props.position) return
     
-    // Use viewport coordinates for floating elements since they're fixed positioned
-    const offsetX = e.clientX - (320 + element.props.position.x) // 320px sidebar offset
-    const offsetY = e.clientY - element.props.position.y
+    // Calculate offset from the element's current fixed position
+    const elementRect = e.currentTarget.getBoundingClientRect()
+    const offsetX = e.clientX - elementRect.left
+    const offsetY = e.clientY - elementRect.top
     
-    setDraggedElement(element)
+    setDraggedFloatingElement(element)
     setDragOffset({ x: offsetX, y: offsetY })
-    setIsDragging(true)
+    setIsDraggingFloating(true)
     setSelectedElement(element)
     
     e.preventDefault()
     e.stopPropagation()
   }
 
-  const handleMouseMove = (e) => {
-    if (!isDragging || !draggedElement) return
+  const handleFloatingMouseMove = (e) => {
+    if (!isDraggingFloating || !draggedFloatingElement) return
     
-    // Calculate position relative to viewport for floating elements
-    const newX = Math.max(0, Math.min(e.clientX - dragOffset.x - 320, window.innerWidth - 320 - 200)) // Constrain within canvas area
+    // Calculate new position in viewport coordinates
+    const sidebarWidth = 320 // Width of sidebar
+    const newX = Math.max(0, Math.min(e.clientX - dragOffset.x - sidebarWidth, window.innerWidth - sidebarWidth - 200))
     const newY = Math.max(0, e.clientY - dragOffset.y)
     
-    updateElement(draggedElement.id, { 
+    updateElement(draggedFloatingElement.id, { 
       position: { x: newX, y: newY }
     })
   }
 
-  const handleMouseUp = () => {
-    setIsDragging(false)
-    setDraggedElement(null)
+  const handleFloatingMouseUp = () => {
+    setIsDraggingFloating(false)
+    setDraggedFloatingElement(null)
     setDragOffset({ x: 0, y: 0 })
   }
 
   useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
+    if (isDraggingFloating) {
+      document.addEventListener('mousemove', handleFloatingMouseMove)
+      document.addEventListener('mouseup', handleFloatingMouseUp)
     }
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('mousemove', handleFloatingMouseMove)
+      document.removeEventListener('mouseup', handleFloatingMouseUp)
     }
-  }, [isDragging, draggedElement, dragOffset])
+  }, [isDraggingFloating, draggedFloatingElement, dragOffset])
 
   const getDefaultProps = (type) => {
     const defaults = {
@@ -242,28 +249,26 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
     return defaults[type] || {}
   }
 
-  // If not editable, render in preview mode
+  // Preview mode - render normally
   if (!isEditable) {
     return (
       <div className="min-h-screen relative">
-        {/* Regular elements in flow */}
-        <div className="min-h-screen">
-          {elements.filter(el => el.type !== 'floatingText' && el.type !== 'floatingButton').map((element, index) => {
-            const Component = componentMap[element.type]
-            if (!Component) return null
+        {/* Regular elements in document flow */}
+        {elements.filter(el => el.type !== 'floatingText' && el.type !== 'floatingButton').map((element, index) => {
+          const Component = componentMap[element.type]
+          if (!Component) return null
 
-            return (
-              <div key={element.id} className="relative">
-                <Component
-                  {...element.props}
-                  isEditing={false}
-                />
-              </div>
-            )
-          })}
-        </div>
+          return (
+            <div key={element.id} className="relative">
+              <Component
+                {...element.props}
+                isEditing={false}
+              />
+            </div>
+          )
+        })}
 
-        {/* Floating elements as overlays */}
+        {/* Floating elements positioned absolutely */}
         {elements.filter(el => el.type === 'floatingText' || el.type === 'floatingButton').map((element) => {
           const Component = componentMap[element.type]
           if (!Component || !element.props.position) return null
@@ -288,20 +293,22 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
     )
   }
 
-  // Editable mode - Full screen
+  // Editable mode - Full screen layout
   return (
     <div className="fixed inset-0 bg-black z-50 flex">
-      {/* Sidebar with Toolbar and Editor */}
+      {/* Sidebar */}
       <div className="w-80 bg-gray-900 border-r border-gray-700 flex flex-col z-60">
         <div className="p-4 border-b border-gray-700">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-white font-semibold">Page Builder</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white text-xl"
-            >
-              ×
-            </button>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-white text-xl"
+              >
+                ×
+              </button>
+            )}
           </div>
           <ElementToolbar onAddElement={addElement} />
         </div>
@@ -318,7 +325,7 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
         )}
       </div>
 
-      {/* Main Canvas Area */}
+      {/* Main Canvas */}
       <div className="flex-1 relative overflow-y-auto">
         <div 
           ref={canvasRef}
@@ -328,7 +335,7 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
             backgroundSize: '20px 20px'
           }}
         >
-          {/* Regular elements in document flow */}
+          {/* Regular elements in drag-drop system */}
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="page-elements">
               {(provided) => (
@@ -401,69 +408,69 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
               )}
             </Droppable>
           </DragDropContext>
-
-          {/* Floating elements as fixed positioned overlays */}
-          {elements.filter(el => el.type === 'floatingText' || el.type === 'floatingButton').map((element) => {
-            const Component = componentMap[element.type]
-            if (!Component || !element.props.position) return null
-
-            const isSelected = selectedElement?.id === element.id
-
-            return (
-              <div
-                key={element.id}
-                className={`fixed cursor-move group z-40 ${
-                  isDragging && draggedElement?.id === element.id ? 'opacity-75' : ''
-                } ${
-                  isSelected ? 'ring-2 ring-blue-400' : 'hover:ring-1 hover:ring-blue-300'
-                }`}
-                style={{
-                  left: `${320 + element.props.position.x}px`, // 320px offset for sidebar width
-                  top: `${element.props.position.y}px`
-                }}
-                onMouseDown={(e) => handleFloatingElementMouseDown(e, element)}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setSelectedElement(element)
-                }}
-              >
-                {/* Floating Element Controls */}
-                <div className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity z-50">
-                  <div className="flex space-x-1 bg-black/90 rounded px-2 py-1 text-xs">
-                    <span className="text-gray-300">{element.type}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedElement(element)
-                      }}
-                      className="text-blue-400 hover:text-blue-300 px-1"
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        removeElement(element.id)
-                      }}
-                      className="text-red-400 hover:text-red-300 px-1"
-                      title="Delete"
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-
-                <Component
-                  {...element.props}
-                  isEditing={true}
-                  onUpdate={(newProps) => updateElement(element.id, newProps)}
-                />
-              </div>
-            )
-          })}
         </div>
       </div>
+
+      {/* Floating elements overlay - positioned outside scrollable area */}
+      {elements.filter(el => el.type === 'floatingText' || el.type === 'floatingButton').map((element) => {
+        const Component = componentMap[element.type]
+        if (!Component || !element.props.position) return null
+
+        const isSelected = selectedElement?.id === element.id
+
+        return (
+          <div
+            key={`floating-${element.id}`}
+            className={`fixed cursor-move group z-40 ${
+              isDraggingFloating && draggedFloatingElement?.id === element.id ? 'opacity-75' : ''
+            } ${
+              isSelected ? 'ring-2 ring-blue-400' : 'hover:ring-1 hover:ring-blue-300'
+            }`}
+            style={{
+              left: `${320 + element.props.position.x}px`, // 320px for sidebar
+              top: `${element.props.position.y}px`
+            }}
+            onMouseDown={(e) => handleFloatingMouseDown(e, element)}
+            onClick={(e) => {
+              e.stopPropagation()
+              setSelectedElement(element)
+            }}
+          >
+            {/* Floating element controls */}
+            <div className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+              <div className="flex space-x-1 bg-black/90 rounded px-2 py-1 text-xs">
+                <span className="text-gray-300">{element.type}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSelectedElement(element)
+                  }}
+                  className="text-blue-400 hover:text-blue-300 px-1"
+                  title="Edit"
+                >
+                  ✏️
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    removeElement(element.id)
+                  }}
+                  className="text-red-400 hover:text-red-300 px-1"
+                  title="Delete"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <Component
+              {...element.props}
+              isEditing={true}
+              onUpdate={(newProps) => updateElement(element.id, newProps)}
+            />
+          </div>
+        )
+      })}
     </div>
   )
 }

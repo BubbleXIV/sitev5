@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { Save, RotateCcw, ExternalLink } from 'lucide-react'
 
 export default function FooterManager() {
@@ -14,7 +14,6 @@ export default function FooterManager() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
-  const [debugInfo, setDebugInfo] = useState('')
 
   useEffect(() => {
     fetchFooterData()
@@ -22,15 +21,11 @@ export default function FooterManager() {
 
   const fetchFooterData = async () => {
     try {
-      setDebugInfo('Attempting to fetch footer data...')
-      
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('site_settings')
         .select('*')
         .eq('key', 'footer')
         .single()
-
-      setDebugInfo(`Fetch result: ${JSON.stringify({ data, error }, null, 2)}`)
 
       if (error && error.code !== 'PGRST116') {
         throw error
@@ -51,7 +46,6 @@ export default function FooterManager() {
     } catch (error) {
       console.error('Error fetching footer data:', error)
       setMessage('Error loading footer data: ' + error.message)
-      setDebugInfo(`Error: ${JSON.stringify(error, null, 2)}`)
     } finally {
       setLoading(false)
     }
@@ -59,11 +53,9 @@ export default function FooterManager() {
 
   const handleSave = async () => {
     setSaving(true)
-    setDebugInfo('Attempting to save...')
     
     try {
-      // Try the upsert
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('site_settings')
         .upsert([
           {
@@ -75,8 +67,6 @@ export default function FooterManager() {
         })
         .select()
 
-      setDebugInfo(`Save result: ${JSON.stringify({ data, error }, null, 2)}`)
-
       if (error) throw error
 
       setMessage('Footer settings saved successfully!')
@@ -84,7 +74,6 @@ export default function FooterManager() {
     } catch (error) {
       console.error('Error saving footer data:', error)
       setMessage('Error saving footer settings: ' + error.message)
-      setDebugInfo(`Save error: ${JSON.stringify(error, null, 2)}`)
     } finally {
       setSaving(false)
     }
@@ -100,20 +89,6 @@ export default function FooterManager() {
     })
     setMessage('Footer settings reset to defaults')
     setTimeout(() => setMessage(''), 3000)
-  }
-
-  const testConnection = async () => {
-    try {
-      setDebugInfo('Testing Supabase connection...')
-      
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('count', { count: 'exact' })
-
-      setDebugInfo(`Connection test: ${JSON.stringify({ data, error }, null, 2)}`)
-    } catch (error) {
-      setDebugInfo(`Connection error: ${JSON.stringify(error, null, 2)}`)
-    }
   }
 
   const updateField = (field, value) => {
@@ -164,12 +139,6 @@ export default function FooterManager() {
         <h2 className="text-2xl font-bold text-white">Footer Management</h2>
         <div className="flex space-x-3">
           <button
-            onClick={testConnection}
-            className="flex items-center space-x-2 btn-secondary"
-          >
-            <span>Test Connection</span>
-          </button>
-          <button
             onClick={handleReset}
             disabled={saving}
             className="flex items-center space-x-2 btn-secondary"
@@ -187,16 +156,6 @@ export default function FooterManager() {
           </button>
         </div>
       </div>
-
-      {/* Debug Information */}
-      {debugInfo && (
-        <div className="card">
-          <h3 className="text-lg font-semibold text-white mb-4">Debug Information</h3>
-          <pre className="bg-gray-800 p-4 rounded text-sm text-gray-300 overflow-auto max-h-64">
-            {debugInfo}
-          </pre>
-        </div>
-      )}
 
       {message && (
         <div className={`p-4 rounded-lg ${

@@ -1,8 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import SiteFooter from '@/components/SiteFooter'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import SiteFooter from '@/components/SiteFooter'
 
 export default function MenuPage() {
   const [categories, setCategories] = useState([])
@@ -38,8 +38,11 @@ export default function MenuPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="large" />
+      <div className="min-h-screen flex flex-col">
+        <div className="flex-1 flex items-center justify-center">
+          <LoadingSpinner size="large" />
+        </div>
+        <SiteFooter />
       </div>
     )
   }

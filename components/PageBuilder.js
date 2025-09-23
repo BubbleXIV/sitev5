@@ -105,11 +105,9 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
   const handleFloatingElementMouseDown = (e, element) => {
     if (!isEditable || !element.props.position) return
     
-    const rect = canvasRef.current?.getBoundingClientRect()
-    if (!rect) return
-    
-    const offsetX = e.clientX - rect.left - element.props.position.x
-    const offsetY = e.clientY - rect.top - element.props.position.y
+    // Use viewport coordinates for floating elements since they're fixed positioned
+    const offsetX = e.clientX - (320 + element.props.position.x) // 320px sidebar offset
+    const offsetY = e.clientY - element.props.position.y
     
     setDraggedElement(element)
     setDragOffset({ x: offsetX, y: offsetY })
@@ -121,11 +119,11 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
   }
 
   const handleMouseMove = (e) => {
-    if (!isDragging || !draggedElement || !canvasRef.current) return
+    if (!isDragging || !draggedElement) return
     
-    const rect = canvasRef.current.getBoundingClientRect()
-    const newX = Math.max(0, Math.min(e.clientX - rect.left - dragOffset.x, rect.width - 200))
-    const newY = Math.max(0, e.clientY - rect.top - dragOffset.y)
+    // Calculate position relative to viewport for floating elements
+    const newX = Math.max(0, Math.min(e.clientX - dragOffset.x - 320, window.innerWidth - 320 - 200)) // Constrain within canvas area
+    const newY = Math.max(0, e.clientY - dragOffset.y)
     
     updateElement(draggedElement.id, { 
       position: { x: newX, y: newY }

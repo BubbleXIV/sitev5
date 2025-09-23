@@ -11,7 +11,8 @@ import {
   Edit,
   Trash2,
   LogOut,
-  Globe
+  Globe,
+  ChevronDown
 } from 'lucide-react'
 import StaffManager from '@/components/admin/StaffManager'
 import MenuManager from '@/components/admin/MenuManager'
@@ -19,6 +20,7 @@ import PageManager from '@/components/admin/PageManager'
 import AdminManager from '@/components/admin/AdminManager'
 import ShadecardManager from '@/components/admin/ShadecardManager'
 import FooterManager from '@/components/admin/FooterManager'
+import SiteSettingsManager from '@/components/admin/SiteSettingsManager'
 
 export default function AdminDashboard({ onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -66,9 +68,10 @@ export default function AdminDashboard({ onLogout }) {
     { id: 'pages', label: 'Pages', icon: FileText },
     { id: 'staff', label: 'Staff', icon: Users },
     { id: 'menu', label: 'Menu', icon: MenuIcon },
-    { id: 'shadecard', label: 'Shadecard', icon: Settings },
-    { id: 'footer', label: 'Footer', icon: Globe },
     { id: 'admins', label: 'Admins', icon: Settings },
+    { id: 'shadecard', label: 'Shadecard', icon: Settings }, 
+    { id: 'footer', label: 'Footer', icon: Globe },
+    { id: 'site-settings', label: 'Site Settings', icon: Globe }
   ]
 
   const renderTabContent = () => {
@@ -81,12 +84,14 @@ export default function AdminDashboard({ onLogout }) {
         return <StaffManager />
       case 'menu':
         return <MenuManager />
-      case 'shadecard':
-        return <ShadecardManager />
-      case 'footer':
-        return <FooterManager />
       case 'admins':
         return <AdminManager />
+      case 'shadecard':
+        return <ShadecardManager /> 
+      case 'footer':
+        return <FooterManager />
+      case 'site-settings':
+        return <SiteSettingsManager />
       default:
         return <DashboardOverview stats={stats} />
     }
@@ -198,28 +203,13 @@ function DashboardOverview({ stats }) {
               <Plus size={16} className="inline mr-2" />
               Add Menu Item
             </button>
-            <button className="w-full btn-secondary text-left">
-              <Plus size={16} className="inline mr-2" />
-              Add Shadecard
-            </button>
           </div>
         </div>
 
         <div className="card">
-          <h3 className="text-lg font-semibold text-white mb-4">System Status</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-300 text-sm">Database</span>
-              <span className="text-green-400 text-sm">Connected</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-300 text-sm">Storage</span>
-              <span className="text-green-400 text-sm">Active</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-300 text-sm">Authentication</span>
-              <span className="text-green-400 text-sm">Working</span>
-            </div>
+          <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
+          <div className="space-y-3 text-gray-300">
+            <p className="text-sm">No recent activity to display.</p>
           </div>
         </div>
       </div>

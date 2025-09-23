@@ -404,7 +404,7 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
             </Droppable>
           </DragDropContext>
 
-          {/* Floating elements as absolute positioned overlays */}
+          {/* Floating elements as fixed positioned overlays */}
           {elements.filter(el => el.type === 'floatingText' || el.type === 'floatingButton').map((element) => {
             const Component = componentMap[element.type]
             if (!Component || !element.props.position) return null
@@ -414,13 +414,13 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
             return (
               <div
                 key={element.id}
-                className={`absolute cursor-move group z-40 ${
+                className={`fixed cursor-move group z-40 ${
                   isDragging && draggedElement?.id === element.id ? 'opacity-75' : ''
                 } ${
                   isSelected ? 'ring-2 ring-blue-400' : 'hover:ring-1 hover:ring-blue-300'
                 }`}
                 style={{
-                  left: `${element.props.position.x}px`,
+                  left: `${320 + element.props.position.x}px`, // 320px offset for sidebar width
                   top: `${element.props.position.y}px`
                 }}
                 onMouseDown={(e) => handleFloatingElementMouseDown(e, element)}

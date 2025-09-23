@@ -1,46 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Instagram, MessageCircle } from 'lucide-react'
+import { Save, RotateCcw, ExternalLink } from 'lucide-react'
 
-// Custom icons for social media
-const TwitterIcon = ({ size = 20, className = "" }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="currentColor" 
-    className={className}
-  >
-    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-  </svg>
-)
-
-const BlueskyIcon = ({ size = 20, className = "" }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 568 501" 
-    fill="currentColor" 
-    className={className}
-  >
-    <path d="M123.121 33.664C188.241 82.553 258.281 181.68 284 234.873c25.719-53.192 95.759-152.32 160.879-201.209C491.866-1.611 568-28.906 568 57.947c0 17.346-9.945 145.713-15.778 166.555-20.275 72.453-94.155 90.933-159.875 79.748C507.222 323.8 536.444 388.56 473.333 453.32c-119.86 122.992-172.272-30.859-185.702-70.281-2.462-7.227-3.614-10.608-3.631-7.733-.017-2.875-1.169.506-3.631 7.733-13.43 39.422-65.842 193.273-185.702 70.281-63.111-64.76-33.889-129.52 80.986-149.07-65.72 11.185-139.6-7.295-159.875-79.748C9.945 203.66 0 75.293 0 57.947 0-28.906 76.134-1.611 123.121 33.664Z"/>
-  </svg>
-)
-
-const DiscordIcon = ({ size = 20, className = "" }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 127.14 96.36" 
-    fill="currentColor" 
-    className={className}
-  >
-    <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/>
-  </svg>
-)
-
-export default function SiteFooter() {
+export default function FooterManager() {
   const [footerData, setFooterData] = useState({
     copyright: '',
     twitter_url: '',
@@ -49,6 +12,9 @@ export default function SiteFooter() {
     discord_url: ''
   })
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+  const [debugInfo, setDebugInfo] = useState('')
 
   useEffect(() => {
     fetchFooterData()
@@ -56,108 +22,290 @@ export default function SiteFooter() {
 
   const fetchFooterData = async () => {
     try {
+      setDebugInfo('Attempting to fetch footer data...')
+      
       const { data, error } = await supabase
         .from('site_settings')
         .select('*')
         .eq('key', 'footer')
         .single()
 
+      setDebugInfo(`Fetch result: ${JSON.stringify({ data, error }, null, 2)}`)
+
+      if (error && error.code !== 'PGRST116') {
+        throw error
+      }
+
       if (data && data.value) {
         setFooterData(data.value)
+      } else {
+        // Set default values if no data exists
+        setFooterData({
+          copyright: `© ${new Date().getFullYear()} The Nightshades Bloom. All rights reserved.`,
+          twitter_url: '',
+          bluesky_url: '',
+          instagram_url: '',
+          discord_url: ''
+        })
       }
     } catch (error) {
       console.error('Error fetching footer data:', error)
-      // Set default values if no data exists
-      setFooterData({
-        copyright: `© ${new Date().getFullYear()} The Nightshade's Bloom. All rights reserved.`,
-        twitter_url: '',
-        bluesky_url: '',
-        instagram_url: '',
-        discord_url: ''
-      })
+      setMessage('Error loading footer data: ' + error.message)
+      setDebugInfo(`Error: ${JSON.stringify(error, null, 2)}`)
     } finally {
       setLoading(false)
     }
   }
 
-  const socialIcons = [
-    {
-      key: 'twitter_url',
-      icon: TwitterIcon,
-      name: 'Twitter/X',
-      color: 'hover:text-blue-300'
-    },
-    {
-      key: 'bluesky_url',
-      icon: BlueskyIcon,
-      name: 'Bluesky',
-      color: 'hover:text-sky-400'
-    },
-    {
-      key: 'instagram_url', 
-      icon: Instagram,
-      name: 'Instagram',
-      color: 'hover:text-pink-400'
-    },
-    {
-      key: 'discord_url',
-      icon: DiscordIcon,
-      name: 'Discord', 
-      color: 'hover:text-indigo-400'
+  const handleSave = async () => {
+    setSaving(true)
+    setDebugInfo('Attempting to save...')
+    
+    try {
+      // Try the upsert
+      const { data, error } = await supabase
+        .from('site_settings')
+        .upsert([
+          {
+            key: 'footer',
+            value: footerData
+          }
+        ], {
+          onConflict: 'key'
+        })
+        .select()
+
+      setDebugInfo(`Save result: ${JSON.stringify({ data, error }, null, 2)}`)
+
+      if (error) throw error
+
+      setMessage('Footer settings saved successfully!')
+      setTimeout(() => setMessage(''), 3000)
+    } catch (error) {
+      console.error('Error saving footer data:', error)
+      setMessage('Error saving footer settings: ' + error.message)
+      setDebugInfo(`Save error: ${JSON.stringify(error, null, 2)}`)
+    } finally {
+      setSaving(false)
     }
-  ]
+  }
+
+  const handleReset = () => {
+    setFooterData({
+      copyright: `© ${new Date().getFullYear()} The Nightshades Bloom. All rights reserved.`,
+      twitter_url: '',
+      bluesky_url: '',
+      instagram_url: '',
+      discord_url: ''
+    })
+    setMessage('Footer settings reset to defaults')
+    setTimeout(() => setMessage(''), 3000)
+  }
+
+  const testConnection = async () => {
+    try {
+      setDebugInfo('Testing Supabase connection...')
+      
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('count', { count: 'exact' })
+
+      setDebugInfo(`Connection test: ${JSON.stringify({ data, error }, null, 2)}`)
+    } catch (error) {
+      setDebugInfo(`Connection error: ${JSON.stringify(error, null, 2)}`)
+    }
+  }
+
+  const updateField = (field, value) => {
+    setFooterData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
 
   if (loading) {
     return (
-      <footer className="bg-black/50 backdrop-blur-sm border-t border-white/10 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            <div className="h-4 bg-white/10 rounded w-48 animate-pulse"></div>
-            <div className="flex space-x-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="w-5 h-5 bg-white/10 rounded animate-pulse"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </footer>
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-nightshade-400"></div>
+      </div>
     )
   }
 
-  // Filter out empty social links
-  const activeSocialLinks = socialIcons.filter(social => footerData[social.key]?.trim())
+  const socialFields = [
+    {
+      key: 'twitter_url',
+      label: 'Twitter/X URL',
+      placeholder: 'https://x.com/yourusername',
+      icon: '𝕏'
+    },
+    {
+      key: 'bluesky_url',
+      label: 'Bluesky URL',
+      placeholder: 'https://bsky.app/profile/yourusername',
+      icon: '🦋'
+    },
+    {
+      key: 'instagram_url',
+      label: 'Instagram URL',
+      placeholder: 'https://instagram.com/yourusername',
+      icon: '📸'
+    },
+    {
+      key: 'discord_url',
+      label: 'Discord Server URL',
+      placeholder: 'https://discord.gg/yourinvite',
+      icon: '💬'
+    }
+  ]
 
   return (
-    <footer className="bg-black/50 backdrop-blur-sm border-t border-white/10 mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
-          {/* Copyright */}
-          <div className="text-gray-400 text-sm">
-            {footerData.copyright || `© ${new Date().getFullYear()} The Nightshade's Bloom. All rights reserved.`}
-          </div>
-
-          {/* Social Links - Only show if there are active links */}
-          {activeSocialLinks.length > 0 && (
-            <div className="flex space-x-4">
-              {activeSocialLinks.map(social => {
-                const IconComponent = social.icon
-                return (
-                  <a
-                    key={social.key}
-                    href={footerData[social.key]}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`text-gray-400 transition-colors duration-200 ${social.color}`}
-                    title={social.name}
-                  >
-                    <IconComponent size={20} />
-                  </a>
-                )
-              })}
-            </div>
-          )}
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-white">Footer Management</h2>
+        <div className="flex space-x-3">
+          <button
+            onClick={testConnection}
+            className="flex items-center space-x-2 btn-secondary"
+          >
+            <span>Test Connection</span>
+          </button>
+          <button
+            onClick={handleReset}
+            disabled={saving}
+            className="flex items-center space-x-2 btn-secondary"
+          >
+            <RotateCcw size={16} />
+            <span>Reset</span>
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center space-x-2 btn-primary"
+          >
+            <Save size={16} />
+            <span>{saving ? 'Saving...' : 'Save Changes'}</span>
+          </button>
         </div>
       </div>
-    </footer>
+
+      {/* Debug Information */}
+      {debugInfo && (
+        <div className="card">
+          <h3 className="text-lg font-semibold text-white mb-4">Debug Information</h3>
+          <pre className="bg-gray-800 p-4 rounded text-sm text-gray-300 overflow-auto max-h-64">
+            {debugInfo}
+          </pre>
+        </div>
+      )}
+
+      {message && (
+        <div className={`p-4 rounded-lg ${
+          message.includes('Error') 
+            ? 'bg-red-900/20 border border-red-500/20 text-red-400'
+            : 'bg-green-900/20 border border-green-500/20 text-green-400'
+        }`}>
+          {message}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Copyright Section */}
+        <div className="card">
+          <h3 className="text-lg font-semibold text-white mb-4">Copyright Information</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Copyright Text
+              </label>
+              <textarea
+                value={footerData.copyright}
+                onChange={(e) => updateField('copyright', e.target.value)}
+                placeholder="© 2024 Your Site Name. All rights reserved."
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-nightshade-500 focus:border-transparent resize-none"
+                rows={3}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Tip: Use {new Date().getFullYear()} for current year
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Social Media Section */}
+        <div className="card">
+          <h3 className="text-lg font-semibold text-white mb-4">Social Media Links</h3>
+          <div className="space-y-4">
+            {socialFields.map((field) => (
+              <div key={field.key}>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <span className="inline-flex items-center space-x-2">
+                    <span>{field.icon}</span>
+                    <span>{field.label}</span>
+                  </span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="url"
+                    value={footerData[field.key]}
+                    onChange={(e) => updateField(field.key, e.target.value)}
+                    placeholder={field.placeholder}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-nightshade-500 focus:border-transparent pr-10"
+                  />
+                  {footerData[field.key] && (
+                    <a
+                      href={footerData[field.key]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-nightshade-400 transition-colors"
+                      title="Test link"
+                    >
+                      <ExternalLink size={16} />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+            <div className="mt-4 p-3 bg-blue-900/20 border border-blue-500/20 rounded-lg">
+              <p className="text-sm text-blue-300">
+                <strong>Note:</strong> Only social media platforms with URLs will display as icons in the footer. 
+                Leave fields empty to hide those icons.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Preview Section */}
+      <div className="card">
+        <h3 className="text-lg font-semibold text-white mb-4">Footer Preview</h3>
+        <div className="bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+          <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+            {/* Copyright Preview */}
+            <div className="text-gray-400 text-sm">
+              {footerData.copyright || `© ${new Date().getFullYear()} The Nightshades Bloom. All rights reserved.`}
+            </div>
+
+            {/* Social Links Preview */}
+            <div className="flex space-x-4">
+              {socialFields.map((field) => {
+                if (!footerData[field.key]?.trim()) return null
+                return (
+                  <div
+                    key={field.key}
+                    className="text-gray-400 hover:text-nightshade-400 transition-colors cursor-pointer"
+                    title={field.label}
+                  >
+                    <span className="text-lg">{field.icon}</span>
+                  </div>
+                )
+              })}
+              {socialFields.every(field => !footerData[field.key]?.trim()) && (
+                <span className="text-gray-500 text-sm">No social media links configured</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

@@ -71,10 +71,10 @@ export default function SiteSettingsManager() {
             key: 'general',
             value: settings
           }
-        ])
-
+        ], { onConflict: 'key' })
+  
       if (error) throw error
-
+  
       setMessage('Site settings saved successfully!')
       setTimeout(() => setMessage(''), 3000)
     } catch (error) {

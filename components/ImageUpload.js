@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Upload, X, Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw, Check } from 'lucide-react'
 
@@ -215,15 +215,17 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
   }
 
   // Add event listeners for mouse events when cropping
-  if (showCropEditor && typeof window !== 'undefined') {
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mouseup', handleMouseUp)
-    
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
+  useEffect(() => {
+    if (showCropEditor && typeof window !== 'undefined') {
+      window.addEventListener('mousemove', handleMouseMove)
+      window.addEventListener('mouseup', handleMouseUp)
+      
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove)
+        window.removeEventListener('mouseup', handleMouseUp)
+      }
     }
-  }
+  }, [showCropEditor, handleMouseMove])
 
   return (
     <div className="space-y-4">

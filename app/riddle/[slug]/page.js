@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
+import SiteFooter from '@/components/SiteFooter'
 
 export default function RiddleCard({ params }) {
   const [riddle, setRiddle] = useState(null)
@@ -118,299 +119,308 @@ export default function RiddleCard({ params }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
-          <div className="text-white">Loading riddle...</div>
+      <div className="min-h-screen flex flex-col">
+        <div className="flex-1 bg-black flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
+            <div className="text-white">Loading riddle...</div>
+          </div>
         </div>
+        <SiteFooter />
       </div>
     )
   }
 
   if (error || !riddle) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="text-red-400 text-xl">{error || 'Riddle not found'}</div>
-          <button
-            onClick={() => router.push('/')}
-            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors"
-          >
-            Return Home
-          </button>
+      <div className="min-h-screen flex flex-col">
+        <div className="flex-1 bg-black flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="text-red-400 text-xl">{error || 'Riddle not found'}</div>
+            <button
+              onClick={() => router.push('/')}
+              className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors"
+            >
+              Return Home
+            </button>
+          </div>
         </div>
+        <SiteFooter />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-black overflow-hidden relative">
-      {/* Background effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-purple-900/20"></div>
-      
-      {/* Multiple Moving Triangles Behind Everything */}
-      <div className="absolute inset-0 z-0">
-        {/* Main center triangle */}
-        <motion.div
-          animate={{
-            rotate: [0, 360],
-            scale: [0.8, 1.2, 0.8],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-          style={{
-            width: '600px',
-            height: '600px',
-            background: 'linear-gradient(45deg, rgba(147, 51, 234, 0.1), rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.1))',
-            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-            filter: 'blur(2px)'
-          }}
-        />
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 bg-black overflow-hidden relative">
+        {/* Background effects */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-purple-900/20"></div>
         
-        {/* Top left triangle */}
-        <motion.div
-          animate={{
-            rotate: [180, 540],
-            scale: [0.6, 1.4, 0.6],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute top-1/4 left-1/4 transform -translate-x-1/2 -translate-y-1/2"
-          style={{
-            width: '400px',
-            height: '400px',
-            background: 'linear-gradient(225deg, rgba(168, 85, 247, 0.08), rgba(139, 92, 246, 0.08))',
-            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-            filter: 'blur(1px)'
-          }}
-        />
-        
-        {/* Top right triangle */}
-        <motion.div
-          animate={{
-            rotate: [90, 450],
-            scale: [0.7, 1.1, 0.7],
-          }}
-          transition={{
-            duration: 22,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute top-1/3 right-1/4 transform translate-x-1/2 -translate-y-1/2"
-          style={{
-            width: '350px',
-            height: '350px',
-            background: 'linear-gradient(315deg, rgba(236, 72, 153, 0.06), rgba(219, 39, 119, 0.06))',
-            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-            filter: 'blur(2px)'
-          }}
-        />
-        
-        {/* Bottom left triangle */}
-        <motion.div
-          animate={{
-            rotate: [270, -90],
-            scale: [0.9, 1.3, 0.9],
-          }}
-          transition={{
-            duration: 18,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute bottom-1/3 left-1/5 transform -translate-x-1/2 translate-y-1/2"
-          style={{
-            width: '300px',
-            height: '300px',
-            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.07), rgba(22, 163, 74, 0.07))',
-            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-            filter: 'blur(1px)'
-          }}
-        />
-        
-        {/* Bottom right triangle */}
-        <motion.div
-          animate={{
-            rotate: [45, 405],
-            scale: [0.5, 1.5, 0.5],
-          }}
-          transition={{
-            duration: 28,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute bottom-1/4 right-1/3 transform translate-x-1/2 translate-y-1/2"
-          style={{
-            width: '450px',
-            height: '450px',
-            background: 'linear-gradient(180deg, rgba(245, 158, 11, 0.05), rgba(217, 119, 6, 0.05))',
-            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-            filter: 'blur(3px)'
-          }}
-        />
-        
-        {/* Additional small triangles for more atmosphere */}
-        <motion.div
-          animate={{
-            rotate: [0, -360],
-            scale: [0.3, 0.8, 0.3],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute top-1/6 left-3/4 transform -translate-x-1/2 -translate-y-1/2"
-          style={{
-            width: '200px',
-            height: '200px',
-            background: 'linear-gradient(60deg, rgba(99, 102, 241, 0.05), rgba(79, 70, 229, 0.05))',
-            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-            filter: 'blur(1px)'
-          }}
-        />
-      </div>
-
-      {/* CSS Variables and Styles for Retro Triangle */}
-      <style jsx>{`
-        .retro-triangle {
-          --labs-sys-color-triangle: #6eccee;
-        }
-
-        .triangle {
-          position: absolute;
-          width: 50vmin;
-          aspect-ratio: 4/3;
-          transform: translate(3vmin, 11.8vmin) rotate(1deg);
-          filter: drop-shadow(0 0 15px var(--labs-sys-color-triangle));
-          z-index: 1;
-          perspective: 1000px;
-          animation: triangle 10s linear infinite;
-        }
-
-        .triangle:after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(45deg, white, var(--labs-sys-color-triangle));
-          clip-path: polygon(
-            6% 22%,
-            29% 94%,
-            29% 94%,
-            6% 22%,
-            94% 3%,
-            29% 94%,
-            7% 22%,
-            4% 19%,
-            29% 94%,
-            100% 0%
-          );
-          transform: translateY(4vmin);
-        }
-
-        @keyframes triangle {
-          from {
-            transform: translate(3vmin, 11.8vmin) rotate(1deg);
-          }
-          50% {
-            transform: translate(3vmin, 12vmin) rotateX(-15deg) rotateY(-20deg);
-          }
-          to {
-            transform: translate(3vmin, 11.8vmin) rotate(1deg);
-          }
-        }
-      `}</style>
-
-      {/* Retro Background Triangle */}
-      <div className="retro-triangle absolute inset-0">
-        <div className="triangle"></div>
-      </div>
-
-      {/* RP Text at top */}
-      <div className="relative z-20 pt-12 px-8 text-center">
-        <AnimatePresence mode="wait">
+        {/* Multiple Moving Triangles Behind Everything */}
+        <div className="absolute inset-0 z-0">
+          {/* Main center triangle */}
           <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.8 }}
-            className="max-w-2xl mx-auto"
-          >
-            <p className="text-gray-300 text-lg italic leading-relaxed">
-              {getCurrentRPText()}
-            </p>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Progress indicator */}
-      {riddle.riddles && riddle.riddles.length > 0 && currentStep > 0 && (
-        <div className="relative z-20 pt-8 px-8 text-center">
-          <div className="max-w-md mx-auto">
-            <div className="flex items-center justify-center space-x-2">
-              {Array.from({ length: riddle.riddles.length + 1 }, (_, i) => (
-                <div
-                  key={i}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    i < currentStep
-                      ? 'bg-purple-400'
-                      : i === currentStep
-                      ? 'bg-purple-600 ring-2 ring-purple-400'
-                      : 'bg-gray-700'
-                  }`}
-                />
-              ))}
-            </div>
-            <p className="text-gray-400 text-sm mt-2">
-              {currentStep > 0 && currentStep <= riddle.riddles.length && `Riddle ${currentStep} of ${riddle.riddles.length}`}
-              {currentStep > riddle.riddles.length && 'Revelation'}
-            </p>
-          </div>
+            animate={{
+              rotate: [0, 360],
+              scale: [0.8, 1.2, 0.8],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+            style={{
+              width: '600px',
+              height: '600px',
+              background: 'linear-gradient(45deg, rgba(147, 51, 234, 0.1), rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.1))',
+              clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+              filter: 'blur(2px)'
+            }}
+          />
+          
+          {/* Top left triangle */}
+          <motion.div
+            animate={{
+              rotate: [180, 540],
+              scale: [0.6, 1.4, 0.6],
+            }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute top-1/4 left-1/4 transform -translate-x-1/2 -translate-y-1/2"
+            style={{
+              width: '400px',
+              height: '400px',
+              background: 'linear-gradient(225deg, rgba(168, 85, 247, 0.08), rgba(139, 92, 246, 0.08))',
+              clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+              filter: 'blur(1px)'
+            }}
+          />
+          
+          {/* Top right triangle */}
+          <motion.div
+            animate={{
+              rotate: [90, 450],
+              scale: [0.7, 1.1, 0.7],
+            }}
+            transition={{
+              duration: 22,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            className="absolute top-1/3 right-1/4 transform translate-x-1/2 -translate-y-1/2"
+            style={{
+              width: '350px',
+              height: '350px',
+              background: 'linear-gradient(315deg, rgba(236, 72, 153, 0.06), rgba(219, 39, 119, 0.06))',
+              clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+              filter: 'blur(2px)'
+            }}
+          />
+          
+          {/* Bottom left triangle */}
+          <motion.div
+            animate={{
+              rotate: [270, -90],
+              scale: [0.9, 1.3, 0.9],
+            }}
+            transition={{
+              duration: 18,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute bottom-1/3 left-1/5 transform -translate-x-1/2 translate-y-1/2"
+            style={{
+              width: '300px',
+              height: '300px',
+              background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.07), rgba(22, 163, 74, 0.07))',
+              clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+              filter: 'blur(1px)'
+            }}
+          />
+          
+          {/* Bottom right triangle */}
+          <motion.div
+            animate={{
+              rotate: [45, 405],
+              scale: [0.5, 1.5, 0.5],
+            }}
+            transition={{
+              duration: 28,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            className="absolute bottom-1/4 right-1/3 transform translate-x-1/2 translate-y-1/2"
+            style={{
+              width: '450px',
+              height: '450px',
+              background: 'linear-gradient(180deg, rgba(245, 158, 11, 0.05), rgba(217, 119, 6, 0.05))',
+              clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+              filter: 'blur(3px)'
+            }}
+          />
+          
+          {/* Additional small triangles for more atmosphere */}
+          <motion.div
+            animate={{
+              rotate: [0, -360],
+              scale: [0.3, 0.8, 0.3],
+            }}
+            transition={{
+              duration: 15,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute top-1/6 left-3/4 transform -translate-x-1/2 -translate-y-1/2"
+            style={{
+              width: '200px',
+              height: '200px',
+              background: 'linear-gradient(60deg, rgba(99, 102, 241, 0.05), rgba(79, 70, 229, 0.05))',
+              clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+              filter: 'blur(1px)'
+            }}
+          />
         </div>
-      )}
 
-      {/* Main Business Card */}
-      <div className="flex items-center justify-center min-h-screen px-8 relative z-30">
-        <AnimatePresence>
-          {showCard && (
+        {/* CSS Variables and Styles for Retro Triangle */}
+        <style jsx>{`
+          .retro-triangle {
+            --labs-sys-color-triangle: #6eccee;
+          }
+
+          .triangle {
+            position: absolute;
+            width: 50vmin;
+            aspect-ratio: 4/3;
+            transform: translate(3vmin, 11.8vmin) rotate(1deg);
+            filter: drop-shadow(0 0 15px var(--labs-sys-color-triangle));
+            z-index: 1;
+            perspective: 1000px;
+            animation: triangle 10s linear infinite;
+          }
+
+          .triangle:after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, white, var(--labs-sys-color-triangle));
+            clip-path: polygon(
+              6% 22%,
+              29% 94%,
+              29% 94%,
+              6% 22%,
+              94% 3%,
+              29% 94%,
+              7% 22%,
+              4% 19%,
+              29% 94%,
+              100% 0%
+            );
+            transform: translateY(4vmin);
+          }
+
+          @keyframes triangle {
+            from {
+              transform: translate(3vmin, 11.8vmin) rotate(1deg);
+            }
+            50% {
+              transform: translate(3vmin, 12vmin) rotateX(-15deg) rotateY(-20deg);
+            }
+            to {
+              transform: translate(3vmin, 11.8vmin) rotate(1deg);
+            }
+          }
+        `}</style>
+
+        {/* Retro Background Triangle */}
+        <div className="retro-triangle absolute inset-0">
+          <div className="triangle"></div>
+        </div>
+
+        {/* RP Text at top */}
+        <div className="relative z-20 pt-12 px-8 text-center">
+          <AnimatePresence mode="wait">
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 1 }}
-              className="relative"
+              key={currentStep}
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.8 }}
+              className="max-w-2xl mx-auto"
             >
-              <BusinessCard 
-                onClick={handleCardClick}
-                content={getCurrentContent()}
-                logo={riddle.venue_logo}
-                isPassword={isPasswordStep()}
-                isRiddle={isRiddleStep()}
-                isIntro={isIntroStep()}
-                riddle={getCurrentRiddle()}
-                onAnswerSelect={handleAnswerSelect}
-                selectedAnswer={selectedAnswer}
-              />
+              <p className="text-gray-300 text-lg italic leading-relaxed">
+                {getCurrentRPText()}
+              </p>
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+          </AnimatePresence>
+        </div>
 
-      {/* Instructions */}
-      <div className="absolute bottom-8 left-0 right-0 text-center z-20">
-        <p className="text-gray-500 text-sm">
-          {isIntroStep() && 'Click the card to begin'}
-          {isRiddleStep() && 'Choose your answer'}
-          {isPasswordStep() && 'The secret has been revealed'}
-        </p>
+        {/* Progress indicator */}
+        {riddle.riddles && riddle.riddles.length > 0 && currentStep > 0 && (
+          <div className="relative z-20 pt-8 px-8 text-center">
+            <div className="max-w-md mx-auto">
+              <div className="flex items-center justify-center space-x-2">
+                {Array.from({ length: riddle.riddles.length + 1 }, (_, i) => (
+                  <div
+                    key={i}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      i < currentStep
+                        ? 'bg-purple-400'
+                        : i === currentStep
+                        ? 'bg-purple-600 ring-2 ring-purple-400'
+                        : 'bg-gray-700'
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-gray-400 text-sm mt-2">
+                {currentStep > 0 && currentStep <= riddle.riddles.length && `Riddle ${currentStep} of ${riddle.riddles.length}`}
+                {currentStep > riddle.riddles.length && 'Revelation'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Main Business Card */}
+        <div className="flex items-center justify-center min-h-screen px-8 relative z-30">
+          <AnimatePresence>
+            {showCard && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 1 }}
+                className="relative"
+              >
+                <BusinessCard 
+                  onClick={handleCardClick}
+                  content={getCurrentContent()}
+                  logo={riddle.venue_logo}
+                  isPassword={isPasswordStep()}
+                  isRiddle={isRiddleStep()}
+                  isIntro={isIntroStep()}
+                  riddle={getCurrentRiddle()}
+                  onAnswerSelect={handleAnswerSelect}
+                  selectedAnswer={selectedAnswer}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Instructions */}
+        <div className="absolute bottom-8 left-0 right-0 text-center z-20">
+          <p className="text-gray-500 text-sm">
+            {isIntroStep() && 'Click the card to begin'}
+            {isRiddleStep() && 'Choose your answer'}
+            {isPasswordStep() && 'The secret has been revealed'}
+          </p>
+        </div>
       </div>
+      <SiteFooter />
     </div>
   )
 }

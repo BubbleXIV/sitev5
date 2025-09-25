@@ -119,60 +119,70 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
         img.src = URL.createObjectURL(originalFile)
       })
 
-      // Set output dimensions
-      const outputWidth = cropAspectRatio === 1 ? 400 : 600
-      const outputHeight = cropAspectRatio === 1 ? 400 : 400
+      // Set canvas size based on target use case
+      // Staff images: 600x384 (matches w-full h-48 aspect ratio at common widths)
+      // Menu images: 600x256 (matches w-full h-32 aspect ratio)
+      // Alt images: 200x200 (for w-10 h-10 circular, but larger for quality)
+      let canvasWidth, canvasHeight
       
-      canvas.width = outputWidth
-      canvas.height = outputHeight
-
-      // Get container dimensions
-      const containerRect = cropContainerRef.current.getBoundingClientRect()
-      const containerWidth = containerRect.width
-      const containerHeight = containerRect.height
-
-      // Calculate how the image fits in the container
-      const imgAspect = img.naturalWidth / img.naturalHeight
-      const containerAspect = containerWidth / containerHeight
-
-      let displayWidth, displayHeight
-      if (imgAspect > containerAspect) {
-        displayHeight = containerHeight
-        displayWidth = containerHeight * imgAspect
+      if (cropAspectRatio === 1) {
+        // Square for alt characters
+        canvasWidth = canvasHeight = 200
+      } else if (cropAspectRatio === (32/48)) {
+        // Menu aspect ratio (h-32 relative to h-48)
+        canvasWidth = 600
+        canvasHeight = 400
       } else {
-        displayWidth = containerWidth
-        displayHeight = containerWidth / imgAspect
+        // Default staff aspect ratio
+        canvasWidth = 600
+        canvasHeight = 400
+      }
+      
+      canvas.width = canvasWidth
+      canvas.height = canvasHeight
+
+      // Get container and image dimensions
+      const container = cropContainerRef.current.getBoundingClientRect()
+      const containerCenterX = container.width / 2
+      const containerCenterY = container.height / 2
+
+      // Calculate where the crop center should be on the original image
+      const cropCenterX = containerCenterX - cropSettings.x
+      const cropCenterY = containerCenterY - cropSettings.y
+
+      // Calculate image scaling to fit in container
+      const containerAspect = container.width / container.height
+      const imageAspect = img.naturalWidth / img.naturalHeight
+      
+      let imageDisplayWidth, imageDisplayHeight
+      if (imageAspect > containerAspect) {
+        imageDisplayHeight = container.height
+        imageDisplayWidth = imageDisplayHeight * imageAspect
+      } else {
+        imageDisplayWidth = container.width  
+        imageDisplayHeight = imageDisplayWidth / imageAspect
       }
 
-      // Apply user's scale
-      displayWidth *= cropSettings.scale
-      displayHeight *= cropSettings.scale
+      // Apply user scale
+      imageDisplayWidth *= cropSettings.scale
+      imageDisplayHeight *= cropSettings.scale
 
-      // Calculate the center offset for the displayed image
-      const imgCenterX = containerWidth / 2
-      const imgCenterY = containerHeight / 2
+      // Convert crop center from display coordinates to source image coordinates
+      const sourcePixelX = (cropCenterX / imageDisplayWidth) * img.naturalWidth
+      const sourcePixelY = (cropCenterY / imageDisplayHeight) * img.naturalHeight
 
-      // Calculate source coordinates on the original image
-      const scaleFactorX = img.naturalWidth / displayWidth
-      const scaleFactorY = img.naturalHeight / displayHeight
+      // Calculate crop rectangle in source image
+      const sourceWidth = (canvasWidth / imageDisplayWidth) * img.naturalWidth
+      const sourceHeight = (canvasHeight / imageDisplayHeight) * img.naturalHeight
 
-      // Calculate what part of the source image should be cropped
-      const cropCenterX = imgCenterX - cropSettings.x
-      const cropCenterY = imgCenterY - cropSettings.y
+      const sourceX = Math.max(0, Math.min(img.naturalWidth - sourceWidth, sourcePixelX - sourceWidth / 2))
+      const sourceY = Math.max(0, Math.min(img.naturalHeight - sourceHeight, sourcePixelY - sourceHeight / 2))
 
-      const sourceCenterX = cropCenterX * scaleFactorX
-      const sourceCenterY = cropCenterY * scaleFactorY
-
-      const sourceX = Math.max(0, sourceCenterX - (outputWidth * scaleFactorX) / 2)
-      const sourceY = Math.max(0, sourceCenterY - (outputHeight * scaleFactorY) / 2)
-      const sourceWidth = Math.min(img.naturalWidth - sourceX, outputWidth * scaleFactorX)
-      const sourceHeight = Math.min(img.naturalHeight - sourceY, outputHeight * scaleFactorY)
-
-      // Draw the cropped portion
+      // Draw the cropped image
       ctx.drawImage(
         img,
-        sourceX, sourceY, sourceWidth, sourceHeight,
-        0, 0, outputWidth, outputHeight
+        sourceX, sourceY, Math.min(sourceWidth, img.naturalWidth - sourceX), Math.min(sourceHeight, img.naturalHeight - sourceY),
+        0, 0, canvasWidth, canvasHeight
       )
 
       // Convert to blob and upload
@@ -226,28 +236,30 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
 
   const removeImage = async () => {
     try {
-      // Try to delete from storage if there's an image
-      const imageToDelete = previewImage || currentImage
-      if (imageToDelete && imageToDelete.includes('/storage/v1/object/public/')) {
-        const path = imageToDelete.split('/images/').pop()
-        if (path) {
+      // Clear preview first for immediate UI feedback
+      const oldPreview = previewImage
+      setPreviewImage('')
+      
+      // Notify parent immediately
+      if (onImageUploaded) {
+        onImageUploaded('')
+      }
+
+      // Try to delete from storage in background
+      const imageToDelete = oldPreview || currentImage
+      if (imageToDelete && (imageToDelete.includes('supabase') || imageToDelete.includes('/images/'))) {
+        // Extract just the filename part after /images/
+        const match = imageToDelete.match(/\/images\/([^\/\?]+)/);
+        if (match) {
+          const filename = match[1]
           await supabase.storage
             .from('images')
-            .remove([`images/${path}`])
+            .remove([`images/${filename}`])
         }
       }
-      
-      setPreviewImage('')
-      if (onImageUploaded) {
-        onImageUploaded('')
-      }
     } catch (error) {
-      console.error('Error removing image:', error)
-      // Still clear the preview even if deletion failed
-      setPreviewImage('')
-      if (onImageUploaded) {
-        onImageUploaded('')
-      }
+      console.error('Error removing from storage:', error)
+      // Don't show error to user since preview is already cleared
     }
   }
 
@@ -264,6 +276,19 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
     }
   }, [showCropEditor, handleMouseMove, handleMouseUp])
 
+  // Get preview box size based on crop type
+  const getPreviewBoxSize = () => {
+    if (cropAspectRatio === 1) {
+      return { width: 100, height: 100 } // Square for alt characters
+    } else if (cropAspectRatio === (32/48)) {
+      return { width: 160, height: 107 } // Menu ratio (roughly 3:2)
+    } else {
+      return { width: 150, height: 100 } // Default staff ratio (3:2)
+    }
+  }
+
+  const previewBoxSize = getPreviewBoxSize()
+
   return (
     <div className="space-y-4">
       {/* Crop Editor Modal */}
@@ -275,39 +300,43 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
             {/* Crop Container */}
             <div 
               ref={cropContainerRef}
-              className="relative w-full h-64 bg-gray-800 rounded-lg overflow-hidden cursor-move border-2 border-white/20 mb-4"
+              className="relative w-full h-80 bg-gray-800 rounded-lg overflow-hidden cursor-move border-2 border-white/20 mb-4"
               onMouseDown={handleMouseDown}
               style={{ touchAction: 'none' }}
             >
               <img
                 src={URL.createObjectURL(originalFile)}
                 alt="Crop preview"
-                className="absolute select-none pointer-events-none"
+                className="absolute select-none pointer-events-none object-contain w-full h-full"
                 style={{
-                  width: 'auto',
-                  height: '100%',
-                  maxWidth: 'none',
                   transform: `translate(${cropSettings.x}px, ${cropSettings.y}px) scale(${cropSettings.scale})`,
                   transformOrigin: 'center center'
                 }}
                 draggable={false}
               />
               
-              {/* Center Indicator */}
+              {/* Crop preview box */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                {cropAspectRatio === 1 ? (
-                  /* Circle for square crops */
-                  <div className="w-8 h-8 border-2 border-nightshade-400 rounded-full bg-nightshade-400/20 flex items-center justify-center">
+                <div 
+                  className="border-2 border-nightshade-400 bg-nightshade-400/10 relative"
+                  style={{
+                    width: `${previewBoxSize.width}px`,
+                    height: `${previewBoxSize.height}px`
+                  }}
+                >
+                  {/* Corner markers */}
+                  <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-nightshade-400"></div>
+                  <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-nightshade-400"></div>
+                  <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-nightshade-400"></div>
+                  <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-nightshade-400"></div>
+                  
+                  {/* Center crosshair */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-4 h-0.5 bg-nightshade-400 absolute"></div>
+                    <div className="h-4 w-0.5 bg-nightshade-400 absolute"></div>
                     <div className="w-1 h-1 bg-nightshade-400 rounded-full"></div>
                   </div>
-                ) : (
-                  /* Crosshair for rectangular crops */
-                  <div className="relative">
-                    <div className="w-6 h-0.5 bg-nightshade-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
-                    <div className="h-6 w-0.5 bg-nightshade-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
-                    <div className="w-2 h-2 border border-nightshade-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-nightshade-400/20"></div>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
 
@@ -364,7 +393,7 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
             </div>
 
             <p className="text-gray-400 text-sm">
-              💡 Drag the image to reposition • Use zoom controls to scale • Center indicator shows crop focus point
+              💡 Drag image to reposition • Zoom to scale • Box shows exact crop area • Corner markers show boundaries
             </p>
           </div>
         </div>

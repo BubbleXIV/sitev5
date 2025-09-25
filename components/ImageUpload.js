@@ -141,42 +141,48 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
       canvas.width = canvasWidth
       canvas.height = canvasHeight
 
-      // Get container and image dimensions
+      // Get container dimensions
       const container = cropContainerRef.current.getBoundingClientRect()
       const containerCenterX = container.width / 2
       const containerCenterY = container.height / 2
 
-      // Calculate where the crop center should be on the original image
-      const cropCenterX = containerCenterX - cropSettings.x
-      const cropCenterY = containerCenterY - cropSettings.y
-
-      // Calculate image scaling to fit in container
+      // Calculate how the image naturally fits in the container (before user scaling/positioning)
       const containerAspect = container.width / container.height
       const imageAspect = img.naturalWidth / img.naturalHeight
       
-      let imageDisplayWidth, imageDisplayHeight
+      let naturalDisplayWidth, naturalDisplayHeight, imageOffsetX = 0, imageOffsetY = 0
+      
       if (imageAspect > containerAspect) {
-        imageDisplayHeight = container.height
-        imageDisplayWidth = imageDisplayHeight * imageAspect
+        // Image is wider than container - fits to height
+        naturalDisplayHeight = container.height
+        naturalDisplayWidth = naturalDisplayHeight * imageAspect
+        imageOffsetX = (container.width - naturalDisplayWidth) / 2
       } else {
-        imageDisplayWidth = container.width  
-        imageDisplayHeight = imageDisplayWidth / imageAspect
+        // Image is taller than container - fits to width  
+        naturalDisplayWidth = container.width
+        naturalDisplayHeight = naturalDisplayWidth / imageAspect
+        imageOffsetY = (container.height - naturalDisplayHeight) / 2
       }
 
-      // Apply user scale
-      imageDisplayWidth *= cropSettings.scale
-      imageDisplayHeight *= cropSettings.scale
+      // Apply user's scale to get actual display size
+      const scaledDisplayWidth = naturalDisplayWidth * cropSettings.scale
+      const scaledDisplayHeight = naturalDisplayHeight * cropSettings.scale
 
-      // Convert crop center from display coordinates to source image coordinates
-      const sourcePixelX = (cropCenterX / imageDisplayWidth) * img.naturalWidth
-      const sourcePixelY = (cropCenterY / imageDisplayHeight) * img.naturalHeight
+      // Calculate the image's top-left corner position after user positioning
+      const imageTopLeftX = containerCenterX + cropSettings.x + imageOffsetX - scaledDisplayWidth / 2
+      const imageTopLeftY = containerCenterY + cropSettings.y + imageOffsetY - scaledDisplayHeight / 2
 
-      // Calculate crop rectangle in source image
-      const sourceWidth = (canvasWidth / imageDisplayWidth) * img.naturalWidth
-      const sourceHeight = (canvasHeight / imageDisplayHeight) * img.naturalHeight
+      // Convert container center (crop center) to image coordinates
+      const cropCenterOnImageX = (containerCenterX - imageTopLeftX) / scaledDisplayWidth * img.naturalWidth
+      const cropCenterOnImageY = (containerCenterY - imageTopLeftY) / scaledDisplayHeight * img.naturalHeight
 
-      const sourceX = Math.max(0, Math.min(img.naturalWidth - sourceWidth, sourcePixelX - sourceWidth / 2))
-      const sourceY = Math.max(0, Math.min(img.naturalHeight - sourceHeight, sourcePixelY - sourceHeight / 2))
+      // Calculate crop dimensions on source image
+      const sourceWidth = (canvasWidth / scaledDisplayWidth) * img.naturalWidth
+      const sourceHeight = (canvasHeight / scaledDisplayHeight) * img.naturalHeight
+
+      // Calculate source rectangle (centered on crop point)
+      const sourceX = Math.max(0, Math.min(img.naturalWidth - sourceWidth, cropCenterOnImageX - sourceWidth / 2))
+      const sourceY = Math.max(0, Math.min(img.naturalHeight - sourceHeight, cropCenterOnImageY - sourceHeight / 2))
 
       // Draw the cropped image
       ctx.drawImage(

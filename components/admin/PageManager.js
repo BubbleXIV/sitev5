@@ -1,9 +1,40 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Edit, Trash2, FileText, Eye } from 'lucide-react'
+import { Plus, Edit, Trash2, FileText, Eye, Image, Users, Calendar, Layout } from 'lucide-react'
 import PageBuilder from '@/components/PageBuilder'
 import Link from 'next/link'
+
+const PAGE_TEMPLATES = [
+  {
+    id: 'blank',
+    name: 'Blank Page',
+    description: 'Build however you want with full flexibility',
+    icon: Layout,
+    fields: []
+  },
+  {
+    id: 'gallery',
+    name: 'Gallery Page',
+    description: 'Show off pictures with categories and lightbox viewing',
+    icon: Image,
+    fields: ['gallery_images', 'gallery_categories']
+  },
+  {
+    id: 'affiliate',
+    name: 'Affiliate Page',
+    description: 'Display affiliates with logos, bios, and links',
+    icon: Users,
+    fields: ['affiliates']
+  },
+  {
+    id: 'event',
+    name: 'Event Page',
+    description: 'Event showcase with hero image, buttons, and special guests',
+    icon: Calendar,
+    fields: ['hero_image', 'overlay_text', 'action_buttons', 'affiliate_logos', 'special_guests']
+  }
+]
 
 export default function PageManager() {
   const [pages, setPages] = useState([])
@@ -83,14 +114,41 @@ export default function PageManager() {
         .eq('page_id', page.id)
         .single()
 
-      setPageContent(data?.content || { elements: [] })
+      setPageContent(data?.content || getDefaultTemplateContent(page.template))
       setCurrentPage(page)
       setEditingContent(true)
     } catch (error) {
       console.error('Error loading page content:', error)
-      setPageContent({ elements: [] })
+      setPageContent(getDefaultTemplateContent(page.template))
       setCurrentPage(page)
       setEditingContent(true)
+    }
+  }
+
+  const getDefaultTemplateContent = (template) => {
+    switch (template) {
+      case 'gallery':
+        return { 
+          elements: [],
+          gallery_images: [],
+          gallery_categories: []
+        }
+      case 'affiliate':
+        return {
+          elements: [],
+          affiliates: []
+        }
+      case 'event':
+        return {
+          elements: [],
+          hero_image: '',
+          overlay_text: '',
+          action_buttons: [],
+          affiliate_logos: [],
+          special_guests: []
+        }
+      default:
+        return { elements: [] }
     }
   }
 
@@ -127,6 +185,10 @@ export default function PageManager() {
     }
   }
 
+  const getTemplateInfo = (templateId) => {
+    return PAGE_TEMPLATES.find(t => t.id === templateId) || PAGE_TEMPLATES[0]
+  }
+
   if (loading) {
     return <div className="text-center py-8">Loading pages...</div>
   }
@@ -135,9 +197,17 @@ export default function PageManager() {
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-white">
-            Editing: {currentPage.title}
-          </h2>
+          <div>
+            <h2 className="text-2xl font-bold text-white">
+              Editing: {currentPage.title}
+            </h2>
+            <div className="flex items-center space-x-2 mt-1">
+              <span className="text-sm text-gray-400">Template:</span>
+              <span className="px-2 py-1 bg-nightshade-600/20 border border-nightshade-500/20 rounded text-xs text-nightshade-300">
+                {getTemplateInfo(currentPage.template).name}
+              </span>
+            </div>
+          </div>
           <div className="flex space-x-2">
             <Link
               href={`/${currentPage.slug}`}
@@ -165,6 +235,7 @@ export default function PageManager() {
             content={pageContent}
             isEditable={true}
             onSave={savePageContent}
+            template={currentPage.template}
           />
         </div>
       </div>
@@ -199,67 +270,78 @@ export default function PageManager() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {pages.map((page) => (
-          <div key={page.id} className="card">
-            <div className="flex items-center mb-4">
-              <FileText className="text-nightshade-400 mr-3" size={24} />
-              <div>
-                <h3 className="font-bold text-lg text-nightshade-300">{page.title}</h3>
-                <p className="text-gray-400 text-sm">/{page.slug}</p>
+        {pages.map((page) => {
+          const templateInfo = getTemplateInfo(page.template)
+          const TemplateIcon = templateInfo.icon
+          
+          return (
+            <div key={page.id} className="card">
+              <div className="flex items-center mb-4">
+                <TemplateIcon className="text-nightshade-400 mr-3" size={24} />
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg text-nightshade-300">{page.title}</h3>
+                  <p className="text-gray-400 text-sm">/{page.slug}</p>
+                </div>
               </div>
-            </div>
 
-            {page.is_staff_page && (
-              <div className="mb-3 px-2 py-1 bg-blue-600/20 border border-blue-500/50 rounded text-xs text-blue-300">
-                Staff Page
+              <div className="mb-3">
+                <span className="px-2 py-1 bg-nightshade-600/20 border border-nightshade-500/20 rounded text-xs text-nightshade-300">
+                  {templateInfo.name}
+                </span>
               </div>
-            )}
 
-            {page.is_menu_page && (
-              <div className="mb-3 px-2 py-1 bg-green-600/20 border border-green-500/50 rounded text-xs text-green-300">
-                Menu Page
-              </div>
-            )}
-
-            <div className="flex space-x-2">
-              <Link
-                href={`/${page.slug}`}
-                target="_blank"
-                className="flex-1 btn-secondary flex items-center justify-center space-x-1"
-              >
-                <Eye size={16} />
-                <span>View</span>
-              </Link>
-
-              {!page.is_staff_page && !page.is_menu_page && (
-                <button
-                  onClick={() => loadPageContent(page)}
-                  className="flex-1 btn-primary flex items-center justify-center space-x-1"
-                >
-                  <Edit size={16} />
-                  <span>Edit</span>
-                </button>
+              {page.is_staff_page && (
+                <div className="mb-3 px-2 py-1 bg-blue-600/20 border border-blue-500/50 rounded text-xs text-blue-300">
+                  Staff Page
+                </div>
               )}
 
-              <button
-                onClick={() => {
-                  setCurrentPage(page)
-                  setIsEditing(true)
-                }}
-                className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors"
-              >
-                <Edit size={16} />
-              </button>
+              {page.is_menu_page && (
+                <div className="mb-3 px-2 py-1 bg-green-600/20 border border-green-500/50 rounded text-xs text-green-300">
+                  Menu Page
+                </div>
+              )}
 
-              <button
-                onClick={() => handleDeletePage(page.id)}
-                className="px-3 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-              >
-                <Trash2 size={16} />
-              </button>
+              <div className="flex space-x-2">
+                <Link
+                  href={`/${page.slug}`}
+                  target="_blank"
+                  className="flex-1 btn-secondary flex items-center justify-center space-x-1"
+                >
+                  <Eye size={16} />
+                  <span>View</span>
+                </Link>
+
+                {!page.is_staff_page && !page.is_menu_page && (
+                  <button
+                    onClick={() => loadPageContent(page)}
+                    className="flex-1 btn-primary flex items-center justify-center space-x-1"
+                  >
+                    <Edit size={16} />
+                    <span>Edit</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setCurrentPage(page)
+                    setIsEditing(true)
+                  }}
+                  className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors"
+                >
+                  <Edit size={16} />
+                </button>
+
+                <button
+                  onClick={() => handleDeletePage(page.id)}
+                  className="px-3 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {pages.length === 0 && (
@@ -282,6 +364,7 @@ function PageForm({ page, onSave, onCancel }) {
   const [formData, setFormData] = useState({
     title: page?.title || '',
     slug: page?.slug || '',
+    template: page?.template || 'blank',
     sort_order: page?.sort_order || 0,
   })
 
@@ -299,13 +382,61 @@ function PageForm({ page, onSave, onCancel }) {
     })
   }
 
+  const selectedTemplate = PAGE_TEMPLATES.find(t => t.id === formData.template)
+  const TemplateIcon = selectedTemplate?.icon || Layout
+
   return (
     <div className="card">
       <h3 className="text-xl font-bold text-white mb-6">
         {page ? 'Edit Page' : 'Add Page'}
       </h3>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Template Selection */}
+        {!page && (
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-3">
+              Choose Template *
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {PAGE_TEMPLATES.map((template) => {
+                const Icon = template.icon
+                return (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, template: template.id }))}
+                    className={`p-4 rounded-lg border-2 text-left transition-all ${
+                      formData.template === template.id
+                        ? 'border-nightshade-500 bg-nightshade-500/10'
+                        : 'border-white/20 hover:border-white/30'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3 mb-2">
+                      <Icon size={20} className="text-nightshade-400" />
+                      <span className="font-medium text-white">{template.name}</span>
+                    </div>
+                    <p className="text-sm text-gray-400">{template.description}</p>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Current Template Display for Editing */}
+        {page && (
+          <div className="p-4 bg-nightshade-500/10 border border-nightshade-500/20 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <TemplateIcon size={20} className="text-nightshade-400" />
+              <div>
+                <span className="font-medium text-white">{selectedTemplate?.name}</span>
+                <p className="text-sm text-gray-400">{selectedTemplate?.description}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Page Title *

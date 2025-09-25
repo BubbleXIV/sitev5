@@ -78,18 +78,24 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
     isDragging.current = false
   }
 
-  const handleZoom = (direction) => {
+  const handleZoom = (direction, e) => {
+    e.preventDefault()
+    e.stopPropagation()
     setCropSettings(prev => ({
       ...prev,
       scale: Math.max(0.1, Math.min(3, prev.scale + (direction * 0.1)))
     }))
   }
 
-  const resetCrop = () => {
+  const resetCrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
     setCropSettings({ scale: 1, x: 0, y: 0 })
   }
 
-  const saveCroppedImage = async () => {
+  const saveCroppedImage = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
     if (!originalImage) return
 
     try {
@@ -180,7 +186,9 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
     }
   }
 
-  const cancelCrop = () => {
+  const cancelCrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
     if (originalImage) {
       URL.revokeObjectURL(originalImage.previewUrl)
     }
@@ -254,15 +262,33 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
                 }}
                 draggable={false}
               />
+              
+              {/* Center Indicator */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                {cropAspectRatio === 1 ? (
+                  /* Circle for square crops */
+                  <div className="w-8 h-8 border-2 border-nightshade-400 rounded-full bg-nightshade-400/20 flex items-center justify-center">
+                    <div className="w-1 h-1 bg-nightshade-400 rounded-full"></div>
+                  </div>
+                ) : (
+                  /* Crosshair for rectangular crops */
+                  <div className="relative">
+                    <div className="w-6 h-0.5 bg-nightshade-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+                    <div className="h-6 w-0.5 bg-nightshade-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+                    <div className="w-2 h-2 border border-nightshade-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Crop Controls */}
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => handleZoom(-1)}
+                  onClick={(e) => handleZoom(-1, e)}
                   className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
                   title="Zoom Out"
+                  type="button"
                 >
                   <ZoomOut size={16} />
                 </button>
@@ -270,9 +296,10 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
                   {Math.round(cropSettings.scale * 100)}%
                 </span>
                 <button
-                  onClick={() => handleZoom(1)}
+                  onClick={(e) => handleZoom(1, e)}
                   className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
                   title="Zoom In"
+                  type="button"
                 >
                   <ZoomIn size={16} />
                 </button>
@@ -280,6 +307,7 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
                   onClick={resetCrop}
                   className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
                   title="Reset"
+                  type="button"
                 >
                   <RotateCcw size={16} />
                 </button>
@@ -289,6 +317,7 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
                 <button
                   onClick={cancelCrop}
                   className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                  type="button"
                 >
                   Cancel
                 </button>
@@ -296,6 +325,7 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
                   onClick={saveCroppedImage}
                   disabled={uploading}
                   className="px-4 py-2 bg-nightshade-600 hover:bg-nightshade-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center space-x-2"
+                  type="button"
                 >
                   <Check size={16} />
                   <span>{uploading ? 'Saving...' : 'Save'}</span>
@@ -304,7 +334,7 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
             </div>
 
             <p className="text-gray-400 text-sm">
-              💡 Drag the image to reposition, use zoom controls to scale
+              💡 Drag the image to reposition • Use zoom controls to scale • Center indicator shows crop focus point
             </p>
           </div>
         </div>

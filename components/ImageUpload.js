@@ -7,7 +7,7 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
   const [uploading, setUploading] = useState(false)
   const [previewImage, setPreviewImage] = useState(currentImage)
   const [showCropEditor, setShowCropEditor] = useState(false)
-  const [originalImage, setOriginalImage] = useState(null)
+  const [originalFile, setOriginalFile] = useState(null)
   const [cropSettings, setCropSettings] = useState({
     scale: 1,
     x: 0,
@@ -17,6 +17,11 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
   const cropContainerRef = useRef()
   const isDragging = useRef(false)
   const dragStart = useRef({ x: 0, y: 0 })
+
+  // Update preview when currentImage changes
+  useEffect(() => {
+    setPreviewImage(currentImage)
+  }, [currentImage])
 
   const uploadImage = async (event) => {
     try {
@@ -38,9 +43,8 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
         throw new Error('Image size must be less than 10MB.')
       }
 
-      // Create preview URL for cropping
-      const previewUrl = URL.createObjectURL(file)
-      setOriginalImage({ file, previewUrl })
+      // Store the original file and show crop editor
+      setOriginalFile(file)
       setShowCropEditor(true)
       setCropSettings({ scale: 1, x: 0, y: 0 })
       
@@ -49,6 +53,8 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
       alert('Error uploading image: ' + error.message)
     } finally {
       setUploading(false)
+      // Reset file input
+      event.target.value = ''
     }
   }
 
@@ -59,6 +65,7 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
       x: e.clientX - cropSettings.x,
       y: e.clientY - cropSettings.y
     }
+    e.preventDefault()
   }
 
   const handleMouseMove = useCallback((e) => {
@@ -74,16 +81,16 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
     }))
   }, [showCropEditor])
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     isDragging.current = false
-  }
+  }, [])
 
   const handleZoom = (direction, e) => {
     e.preventDefault()
     e.stopPropagation()
     setCropSettings(prev => ({
       ...prev,
-      scale: Math.max(0.1, Math.min(3, prev.scale + (direction * 0.1)))
+      scale: Math.max(0.5, Math.min(3, prev.scale + (direction * 0.1)))
     }))
   }
 
@@ -96,7 +103,7 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
   const saveCroppedImage = async (e) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!originalImage) return
+    if (!originalFile) return
 
     try {
       setUploading(true)
@@ -106,73 +113,76 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
       const ctx = canvas.getContext('2d')
       const img = new Image()
 
-      await new Promise((resolve) => {
+      await new Promise((resolve, reject) => {
         img.onload = resolve
-        img.src = originalImage.previewUrl
+        img.onerror = reject
+        img.src = URL.createObjectURL(originalFile)
       })
 
-      // Set canvas size based on crop container dimensions while maintaining aspect ratio
+      // Set output dimensions
+      const outputWidth = cropAspectRatio === 1 ? 400 : 600
+      const outputHeight = cropAspectRatio === 1 ? 400 : 400
+      
+      canvas.width = outputWidth
+      canvas.height = outputHeight
+
+      // Get container dimensions
       const containerRect = cropContainerRef.current.getBoundingClientRect()
-      let canvasWidth, canvasHeight
-      
-      if (cropAspectRatio) {
-        // Use specified aspect ratio
-        canvasWidth = 400
-        canvasHeight = 400 / cropAspectRatio
-      } else {
-        // Use container dimensions
-        canvasWidth = containerRect.width
-        canvasHeight = containerRect.height
-      }
-      
-      canvas.width = canvasWidth
-      canvas.height = canvasHeight
+      const containerWidth = containerRect.width
+      const containerHeight = containerRect.height
 
-      // Calculate the actual displayed image dimensions
-      const imgAspectRatio = img.naturalWidth / img.naturalHeight
-      const containerAspectRatio = containerRect.width / containerRect.height
-      
+      // Calculate how the image fits in the container
+      const imgAspect = img.naturalWidth / img.naturalHeight
+      const containerAspect = containerWidth / containerHeight
+
       let displayWidth, displayHeight
-      if (imgAspectRatio > containerAspectRatio) {
-        // Image is wider than container
-        displayWidth = containerRect.width
-        displayHeight = containerRect.width / imgAspectRatio
+      if (imgAspect > containerAspect) {
+        displayHeight = containerHeight
+        displayWidth = containerHeight * imgAspect
       } else {
-        // Image is taller than container
-        displayHeight = containerRect.height
-        displayWidth = containerRect.height * imgAspectRatio
+        displayWidth = containerWidth
+        displayHeight = containerWidth / imgAspect
       }
 
-      // Calculate scale factors from display size to natural size
-      const scaleX = img.naturalWidth / (displayWidth * cropSettings.scale)
-      const scaleY = img.naturalHeight / (displayHeight * cropSettings.scale)
-      
-      // Calculate source coordinates accounting for image positioning
-      const offsetX = (containerRect.width - displayWidth) / 2
-      const offsetY = (containerRect.height - displayHeight) / 2
-      
-      const sourceX = Math.max(0, (-cropSettings.x + offsetX) * scaleX)
-      const sourceY = Math.max(0, (-cropSettings.y + offsetY) * scaleY)
-      const sourceWidth = Math.min(img.naturalWidth - sourceX, canvasWidth * scaleX)
-      const sourceHeight = Math.min(img.naturalHeight - sourceY, canvasHeight * scaleY)
+      // Apply user's scale
+      displayWidth *= cropSettings.scale
+      displayHeight *= cropSettings.scale
 
-      // Draw the cropped image maintaining aspect ratio
+      // Calculate the center offset for the displayed image
+      const imgCenterX = containerWidth / 2
+      const imgCenterY = containerHeight / 2
+
+      // Calculate source coordinates on the original image
+      const scaleFactorX = img.naturalWidth / displayWidth
+      const scaleFactorY = img.naturalHeight / displayHeight
+
+      // Calculate what part of the source image should be cropped
+      const cropCenterX = imgCenterX - cropSettings.x
+      const cropCenterY = imgCenterY - cropSettings.y
+
+      const sourceCenterX = cropCenterX * scaleFactorX
+      const sourceCenterY = cropCenterY * scaleFactorY
+
+      const sourceX = Math.max(0, sourceCenterX - (outputWidth * scaleFactorX) / 2)
+      const sourceY = Math.max(0, sourceCenterY - (outputHeight * scaleFactorY) / 2)
+      const sourceWidth = Math.min(img.naturalWidth - sourceX, outputWidth * scaleFactorX)
+      const sourceHeight = Math.min(img.naturalHeight - sourceY, outputHeight * scaleFactorY)
+
+      // Draw the cropped portion
       ctx.drawImage(
         img,
         sourceX, sourceY, sourceWidth, sourceHeight,
-        0, 0, canvasWidth, canvasHeight
+        0, 0, outputWidth, outputHeight
       )
 
-      // Convert canvas to blob
+      // Convert to blob and upload
       const blob = await new Promise(resolve => {
         canvas.toBlob(resolve, 'image/jpeg', 0.9)
       })
 
-      const fileExt = originalImage.file.name.split('.').pop()
+      const fileExt = originalFile.name.split('.').pop() || 'jpg'
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
       const filePath = `images/${fileName}`
-
-      console.log('Uploading cropped file:', filePath)
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
@@ -182,28 +192,21 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
           upsert: false
         })
 
-      if (error) {
-        console.error('Upload error:', error)
-        throw error
-      }
-
-      console.log('Upload successful:', data)
+      if (error) throw error
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('images')
         .getPublicUrl(filePath)
 
-      console.log('Public URL:', publicUrl)
-      
       setPreviewImage(publicUrl)
       if (onImageUploaded) {
         onImageUploaded(publicUrl)
       }
 
       // Cleanup
-      URL.revokeObjectURL(originalImage.previewUrl)
-      setOriginalImage(null)
+      URL.revokeObjectURL(img.src)
+      setOriginalFile(null)
       setShowCropEditor(false)
       
     } catch (error) {
@@ -217,18 +220,16 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
   const cancelCrop = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    if (originalImage) {
-      URL.revokeObjectURL(originalImage.previewUrl)
-    }
-    setOriginalImage(null)
+    setOriginalFile(null)
     setShowCropEditor(false)
   }
 
   const removeImage = async () => {
     try {
-      // If there's a current image, try to delete it from storage
-      if (currentImage) {
-        const path = currentImage.split('/').pop()
+      // Try to delete from storage if there's an image
+      const imageToDelete = previewImage || currentImage
+      if (imageToDelete && imageToDelete.includes('/storage/v1/object/public/')) {
+        const path = imageToDelete.split('/images/').pop()
         if (path) {
           await supabase.storage
             .from('images')
@@ -261,12 +262,12 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
         window.removeEventListener('mouseup', handleMouseUp)
       }
     }
-  }, [showCropEditor, handleMouseMove])
+  }, [showCropEditor, handleMouseMove, handleMouseUp])
 
   return (
     <div className="space-y-4">
       {/* Crop Editor Modal */}
-      {showCropEditor && originalImage && (
+      {showCropEditor && originalFile && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 rounded-lg p-6 max-w-2xl w-full">
             <h3 className="text-xl font-bold text-white mb-4">Crop Image</h3>
@@ -279,14 +280,15 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
               style={{ touchAction: 'none' }}
             >
               <img
-                src={originalImage.previewUrl}
+                src={URL.createObjectURL(originalFile)}
                 alt="Crop preview"
                 className="absolute select-none pointer-events-none"
                 style={{
+                  width: 'auto',
+                  height: '100%',
+                  maxWidth: 'none',
                   transform: `translate(${cropSettings.x}px, ${cropSettings.y}px) scale(${cropSettings.scale})`,
-                  transformOrigin: '0 0',
-                  width: '100%',
-                  height: 'auto'
+                  transformOrigin: 'center center'
                 }}
                 draggable={false}
               />
@@ -303,7 +305,7 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
                   <div className="relative">
                     <div className="w-6 h-0.5 bg-nightshade-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
                     <div className="h-6 w-0.5 bg-nightshade-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
-                    <div className="w-2 h-2 border border-nightshade-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+                    <div className="w-2 h-2 border border-nightshade-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-nightshade-400/20"></div>
                   </div>
                 )}
               </div>

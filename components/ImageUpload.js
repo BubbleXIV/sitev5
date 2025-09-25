@@ -111,24 +111,52 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
         img.src = originalImage.previewUrl
       })
 
-      // Set canvas size based on crop container or aspect ratio
+      // Set canvas size based on crop container dimensions while maintaining aspect ratio
       const containerRect = cropContainerRef.current.getBoundingClientRect()
-      const canvasWidth = cropAspectRatio ? 400 : containerRect.width
-      const canvasHeight = cropAspectRatio ? 400 / cropAspectRatio : containerRect.height
+      let canvasWidth, canvasHeight
+      
+      if (cropAspectRatio) {
+        // Use specified aspect ratio
+        canvasWidth = 400
+        canvasHeight = 400 / cropAspectRatio
+      } else {
+        // Use container dimensions
+        canvasWidth = containerRect.width
+        canvasHeight = containerRect.height
+      }
       
       canvas.width = canvasWidth
       canvas.height = canvasHeight
 
-      // Calculate the source coordinates and dimensions for cropping
-      const scaleX = img.naturalWidth / (containerRect.width * cropSettings.scale)
-      const scaleY = img.naturalHeight / (containerRect.height * cropSettings.scale)
+      // Calculate the actual displayed image dimensions
+      const imgAspectRatio = img.naturalWidth / img.naturalHeight
+      const containerAspectRatio = containerRect.width / containerRect.height
       
-      const sourceX = Math.max(0, -cropSettings.x * scaleX)
-      const sourceY = Math.max(0, -cropSettings.y * scaleY)
+      let displayWidth, displayHeight
+      if (imgAspectRatio > containerAspectRatio) {
+        // Image is wider than container
+        displayWidth = containerRect.width
+        displayHeight = containerRect.width / imgAspectRatio
+      } else {
+        // Image is taller than container
+        displayHeight = containerRect.height
+        displayWidth = containerRect.height * imgAspectRatio
+      }
+
+      // Calculate scale factors from display size to natural size
+      const scaleX = img.naturalWidth / (displayWidth * cropSettings.scale)
+      const scaleY = img.naturalHeight / (displayHeight * cropSettings.scale)
+      
+      // Calculate source coordinates accounting for image positioning
+      const offsetX = (containerRect.width - displayWidth) / 2
+      const offsetY = (containerRect.height - displayHeight) / 2
+      
+      const sourceX = Math.max(0, (-cropSettings.x + offsetX) * scaleX)
+      const sourceY = Math.max(0, (-cropSettings.y + offsetY) * scaleY)
       const sourceWidth = Math.min(img.naturalWidth - sourceX, canvasWidth * scaleX)
       const sourceHeight = Math.min(img.naturalHeight - sourceY, canvasHeight * scaleY)
 
-      // Draw the cropped image
+      // Draw the cropped image maintaining aspect ratio
       ctx.drawImage(
         img,
         sourceX, sourceY, sourceWidth, sourceHeight,

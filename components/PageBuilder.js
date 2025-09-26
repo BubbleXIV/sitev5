@@ -23,6 +23,10 @@ import GalleryTemplate from '@/components/templates/GalleryTemplate'
 import AffiliateTemplate from '@/components/templates/AffiliateTemplate'
 import EventTemplate from '@/components/templates/EventTemplate'
 
+
+export default function PageBuilder({ content, isEditable = false, onSave, template = 'blank' }) {
+     console.log('PAGEBUILDER IS RUNNING') // Add this line
+
 export default function PageBuilder({ content, isEditable = false, onSave, template = 'blank' }) {
   // Add these debug lines at the very beginning
   console.log('PageBuilder received template:', template)

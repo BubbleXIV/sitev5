@@ -19,9 +19,9 @@ import DividerSection from '@/components/builder/DividerSection'
 import TestimonialSection from '@/components/builder/TestimonialSection'
 
 // Import template components
-import GalleryTemplate from '@/components/templates/GalleryTemplate'
-import AffiliateTemplate from '@/components/templates/AffiliateTemplate'
 import EventTemplate from '@/components/templates/EventTemplate'
+import GalleryTemplate from '@/components/templates/GalleryTemplate' 
+import AffiliateTemplate from '@/components/templates/AffiliateTemplate'
 
 
 const componentMap = {

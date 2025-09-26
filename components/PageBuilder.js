@@ -24,16 +24,6 @@ import AffiliateTemplate from '@/components/templates/AffiliateTemplate'
 import EventTemplate from '@/components/templates/EventTemplate'
 
 
-export default function PageBuilder({ content, isEditable = false, onSave, template = 'blank' }) {
-     console.log('PAGEBUILDER IS RUNNING') // Add this line
-
-export default function PageBuilder({ content, isEditable = false, onSave, template = 'blank' }) {
-  // Add these debug lines at the very beginning
-  console.log('PageBuilder received template:', template)
-  console.log('PageBuilder received content:', content)
-  console.log('Template components available:', Object.keys(templateComponents))
-  console.log('Template condition check:', template !== 'blank' && templateComponents[template])
-
 const componentMap = {
   hero: HeroSection,
   text: TextSection,
@@ -73,6 +63,11 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
   const [draggedFloatingElement, setDraggedFloatingElement] = useState(null)
   const [isResizing, setIsResizing] = useState(false)
   const canvasRef = useRef(null)
+  console.log('PageBuilder received template:', template)
+  console.log('PageBuilder received content:', content)
+  console.log('Template components available:', Object.keys(templateComponents))
+  console.log('Template condition check:', template !== 'blank' && templateComponents[template])
+  console.log('PAGEBUILDER IS RUNNING')
 
   useEffect(() => {
     setElements(content?.elements || [])

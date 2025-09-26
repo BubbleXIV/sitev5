@@ -7,6 +7,7 @@ import SiteFooter from '@/components/SiteFooter'
 
 export default function DynamicPage({ params }) {
   const [pageContent, setPageContent] = useState(null)
+  const [pageData, setPageData] = useState(null) // ADD THIS - store the page data
   const [loading, setLoading] = useState(true)
   const [pageFound, setPageFound] = useState(true)
 
@@ -27,6 +28,9 @@ export default function DynamicPage({ params }) {
         setPageFound(false)
         return
       }
+
+      // Store the page data so we can access page.template
+      setPageData(page)
 
       // Redirect to specific components for staff and menu pages
       if (page.is_staff_page || page.is_menu_page) {
@@ -68,7 +72,11 @@ export default function DynamicPage({ params }) {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex-1">
-        <PageBuilder content={pageContent} isEditable={false} />
+        <PageBuilder 
+          content={pageContent} 
+          isEditable={false} 
+          template={pageData?.template} // ADD THIS - pass the template
+        />
       </div>
       <SiteFooter />
     </div>

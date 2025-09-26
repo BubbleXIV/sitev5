@@ -23,7 +23,6 @@ import EventTemplate from '@/components/templates/EventTemplate'
 import GalleryTemplate from '@/components/templates/GalleryTemplate' 
 import AffiliateTemplate from '@/components/templates/AffiliateTemplate'
 
-
 const componentMap = {
   hero: HeroSection,
   text: TextSection,
@@ -46,32 +45,7 @@ const templateComponents = {
   event: EventTemplate,
 }
 
-export default function PageBuilder({ content, isEditable = false, onSave, template }) {
-  console.log('PageBuilder received template:', template)
-  console.log('PageBuilder received content:', content)
-  
-  const templateComponents = {
-    gallery: GalleryTemplate,
-    affiliate: AffiliateTemplate,
-    event: EventTemplate
-  }
-  
-  console.log('Template components available:', Object.keys(templateComponents))
-  console.log('Template condition check:', templateComponents[template])
-  
-  // If we have a specific template, render that instead of the element builder
-  if (template && template !== 'blank' && templateComponents[template]) {
-    const TemplateComponent = templateComponents[template]
-    return (
-      <TemplateComponent 
-        content={content} 
-        isEditable={isEditable}
-        onSave={onSave}
-      />
-    )
-  }
-  
-  console.log('PAGEBUILDER IS RUNNING')
+export default function PageBuilder({ content, isEditable = false, onSave, template = 'blank' }) {
   const [elements, setElements] = useState(content?.elements || [])
   const [templateData, setTemplateData] = useState({
     gallery_images: content?.gallery_images || [],

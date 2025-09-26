@@ -23,6 +23,13 @@ import GalleryTemplate from '@/components/templates/GalleryTemplate'
 import AffiliateTemplate from '@/components/templates/AffiliateTemplate'
 import EventTemplate from '@/components/templates/EventTemplate'
 
+export default function PageBuilder({ content, isEditable = false, onSave, template = 'blank' }) {
+  // Add these debug lines at the very beginning
+  console.log('PageBuilder received template:', template)
+  console.log('PageBuilder received content:', content)
+  console.log('Template components available:', Object.keys(templateComponents))
+  console.log('Template condition check:', template !== 'blank' && templateComponents[template])
+
 const componentMap = {
   hero: HeroSection,
   text: TextSection,

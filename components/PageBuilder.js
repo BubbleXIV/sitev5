@@ -354,7 +354,7 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
       </div>
     )
   }
-  
+
   return (
     <div className="min-h-screen flex">
       {/* Sidebar */}

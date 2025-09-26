@@ -194,6 +194,12 @@ export default function PageManager() {
   }
 
   if (editingContent) {
+    // ADD DEBUG STATEMENTS HERE - RIGHT BEFORE PAGEBUILDER RENDERS
+    console.log('🔍 PageManager Debug:')
+    console.log('currentPage:', currentPage)
+    console.log('currentPage.template:', currentPage?.template)
+    console.log('pageContent:', pageContent)
+
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -229,9 +235,6 @@ export default function PageManager() {
             </button>
           </div>
         </div>
-
-console.log('PageManager passing template:', currentPage.template)
-console.log('PageManager current page:', currentPage)
                 
         <div className="bg-white/5 rounded-lg p-4">
           <PageBuilder
@@ -244,13 +247,6 @@ console.log('PageManager current page:', currentPage)
       </div>
     )
   }
-
-<PageBuilder
-  content={pageContent}
-  isEditable={true}
-  onSave={savePageContent}
-  template={currentPage.template}
-/>
 
   return (
     <div className="space-y-6">

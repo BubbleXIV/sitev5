@@ -230,6 +230,9 @@ export default function PageManager() {
           </div>
         </div>
 
+console.log('PageManager passing template:', currentPage.template)
+console.log('PageManager current page:', currentPage)
+                
         <div className="bg-white/5 rounded-lg p-4">
           <PageBuilder
             content={pageContent}
@@ -241,6 +244,13 @@ export default function PageManager() {
       </div>
     )
   }
+
+<PageBuilder
+  content={pageContent}
+  isEditable={true}
+  onSave={savePageContent}
+  template={currentPage.template}
+/>
 
   return (
     <div className="space-y-6">

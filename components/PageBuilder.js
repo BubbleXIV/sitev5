@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 import { motion } from 'framer-motion'
 import BackgroundImageSection from '@/components/builder/BackgroundImageSection'
@@ -18,6 +18,11 @@ import SpacerSection from '@/components/builder/SpacerSection'
 import DividerSection from '@/components/builder/DividerSection'
 import TestimonialSection from '@/components/builder/TestimonialSection'
 
+// Import template components
+import GalleryTemplate from '@/components/templates/GalleryTemplate'
+import AffiliateTemplate from '@/components/templates/AffiliateTemplate'
+import EventTemplate from '@/components/templates/EventTemplate'
+
 const componentMap = {
   hero: HeroSection,
   text: TextSection,
@@ -34,35 +39,57 @@ const componentMap = {
   floatingButton: FloatingButtonSection,
 }
 
-export default function PageBuilder({ content, isEditable = false, onSave, onClose }) {
+const templateComponents = {
+  gallery: GalleryTemplate,
+  affiliate: AffiliateTemplate,
+  event: EventTemplate,
+}
+
+export default function PageBuilder({ content, isEditable = false, onSave, template = 'blank' }) {
   const [elements, setElements] = useState(content?.elements || [])
+  const [templateData, setTemplateData] = useState({
+    gallery_images: content?.gallery_images || [],
+    gallery_categories: content?.gallery_categories || [],
+    affiliates: content?.affiliates || [],
+    hero_image: content?.hero_image || '',
+    overlay_text: content?.overlay_text || '',
+    action_buttons: content?.action_buttons || [],
+    affiliate_logos: content?.affiliate_logos || [],
+    special_guests: content?.special_guests || []
+  })
   const [selectedElement, setSelectedElement] = useState(null)
-  const [draggedFloatingElement, setDraggedFloatingElement] = useState(null)
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [isDraggingFloating, setIsDraggingFloating] = useState(false)
+  const [draggedFloatingElement, setDraggedFloatingElement] = useState(null)
   const [isResizing, setIsResizing] = useState(false)
-  const [resizeDirection, setResizeDirection] = useState(null)
   const canvasRef = useRef(null)
 
   useEffect(() => {
     setElements(content?.elements || [])
+    setTemplateData({
+      gallery_images: content?.gallery_images || [],
+      gallery_categories: content?.gallery_categories || [],
+      affiliates: content?.affiliates || [],
+      hero_image: content?.hero_image || '',
+      overlay_text: content?.overlay_text || '',
+      action_buttons: content?.action_buttons || [],
+      affiliate_logos: content?.affiliate_logos || [],
+      special_guests: content?.special_guests || []
+    })
   }, [content])
 
   const onDragEnd = (result) => {
     if (!result.destination || !isEditable) return
 
-    // Only handle regular elements in drag and drop
-    const regularElements = elements.filter(el => el.type !== 'floatingText' && el.type !== 'floatingButton')
-    const floatingElements = elements.filter(el => el.type === 'floatingText' || el.type === 'floatingButton')
-    
-    const newRegularElements = Array.from(regularElements)
-    const [reorderedItem] = newRegularElements.splice(result.source.index, 1)
-    newRegularElements.splice(result.destination.index, 0, reorderedItem)
+    const newElements = Array.from(elements)
+    const [reorderedItem] = newElements.splice(result.source.index, 1)
+    newElements.splice(result.destination.index, 0, reorderedItem)
 
-    const newElements = [...newRegularElements, ...floatingElements]
     setElements(newElements)
     if (onSave) {
-      onSave({ elements: newElements })
+      onSave({ 
+        elements: newElements,
+        ...templateData
+      })
     }
   }
 
@@ -72,7 +99,21 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
     )
     setElements(newElements)
     if (onSave) {
-      onSave({ elements: newElements })
+      onSave({ 
+        elements: newElements,
+        ...templateData
+      })
+    }
+  }
+
+  const updateTemplateData = (key, value) => {
+    const newTemplateData = { ...templateData, [key]: value }
+    setTemplateData(newTemplateData)
+    if (onSave) {
+      onSave({
+        elements,
+        ...newTemplateData
+      })
     }
   }
 
@@ -82,20 +123,13 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
       type,
       props: getDefaultProps(type)
     }
-    
-    // For floating elements, add initial position
-    if (type === 'floatingText' || type === 'floatingButton') {
-      const existingFloating = elements.filter(el => el.type === 'floatingText' || el.type === 'floatingButton').length
-      newElement.props.position = {
-        x: 100 + (existingFloating * 50),
-        y: 100 + (existingFloating * 50)
-      }
-    }
-
     const newElements = [...elements, newElement]
     setElements(newElements)
     if (onSave) {
-      onSave({ elements: newElements })
+      onSave({ 
+        elements: newElements,
+        ...templateData
+      })
     }
   }
 
@@ -104,98 +138,12 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
     setElements(newElements)
     setSelectedElement(null)
     if (onSave) {
-      onSave({ elements: newElements })
-    }
-  }
-
-  // Handle floating element dragging within canvas
-  const handleFloatingMouseDown = (e, element) => {
-    if (!isEditable || !element.props.position) return
-    
-    const rect = canvasRef.current?.getBoundingClientRect()
-    if (!rect) return
-    
-    const offsetX = e.clientX - rect.left - element.props.position.x
-    const offsetY = e.clientY - rect.top - element.props.position.y
-    
-    setDraggedFloatingElement(element)
-    setDragOffset({ x: offsetX, y: offsetY })
-    setIsDraggingFloating(true)
-    setSelectedElement(element)
-    
-    e.preventDefault()
-    e.stopPropagation()
-  }
-
-  const handleFloatingMouseMove = (e) => {
-    if (isDraggingFloating && draggedFloatingElement && canvasRef.current) {
-      const rect = canvasRef.current.getBoundingClientRect()
-      const newX = Math.max(0, Math.min(e.clientX - rect.left - dragOffset.x, rect.width - (draggedFloatingElement.props.width || 200)))
-      const newY = Math.max(0, e.clientY - rect.top - dragOffset.y)
-      
-      updateElement(draggedFloatingElement.id, { 
-        position: { x: newX, y: newY }
-      })
-    } else if (isResizing && draggedFloatingElement && canvasRef.current) {
-      const rect = canvasRef.current.getBoundingClientRect()
-      const mouseX = e.clientX - rect.left
-      const mouseY = e.clientY - rect.top
-      const elementX = draggedFloatingElement.props.position.x
-      const elementY = draggedFloatingElement.props.position.y
-      
-      let newWidth = draggedFloatingElement.props.width || 200
-      let newHeight = draggedFloatingElement.props.height || 60
-      
-      switch (resizeDirection) {
-        case 'se':
-          newWidth = Math.max(50, mouseX - elementX)
-          newHeight = Math.max(30, mouseY - elementY)
-          break
-        case 's':
-          newHeight = Math.max(30, mouseY - elementY)
-          break
-        case 'e':
-          newWidth = Math.max(50, mouseX - elementX)
-          break
-      }
-      
-      updateElement(draggedFloatingElement.id, { 
-        width: newWidth,
-        height: newHeight
+      onSave({ 
+        elements: newElements,
+        ...templateData
       })
     }
   }
-
-  const handleFloatingMouseUp = () => {
-    setIsDraggingFloating(false)
-    setIsResizing(false)
-    setDraggedFloatingElement(null)
-    setDragOffset({ x: 0, y: 0 })
-    setResizeDirection(null)
-  }
-
-  // Handle resize start
-  const handleResizeMouseDown = (e, element, direction) => {
-    setDraggedFloatingElement(element)
-    setIsResizing(true)
-    setResizeDirection(direction)
-    setSelectedElement(element)
-    
-    e.preventDefault()
-    e.stopPropagation()
-  }
-
-  useEffect(() => {
-    if (isDraggingFloating || isResizing) {
-      document.addEventListener('mousemove', handleFloatingMouseMove)
-      document.addEventListener('mouseup', handleFloatingMouseUp)
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleFloatingMouseMove)
-      document.removeEventListener('mouseup', handleFloatingMouseUp)
-    }
-  }, [isDraggingFloating, isResizing, draggedFloatingElement, dragOffset, resizeDirection])
 
   const getDefaultProps = (type) => {
     const defaults = {
@@ -279,7 +227,6 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
         position: { x: 50, y: 50 },
         width: 200,
         height: 60,
-        isStatic: false,
         animation: 'fade-in'
       },
       floatingButton: {
@@ -290,109 +237,169 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
         position: { x: 50, y: 50 },
         width: 150,
         height: 40,
-        isStatic: false,
         animation: 'fade-in'
       }
     }
     return defaults[type] || {}
   }
 
-  // Preview mode - render normally
-  if (!isEditable) {
+  // Floating element mouse handlers
+  const handleFloatingMouseDown = useCallback((e, element) => {
+    if (!isEditable || isResizing) return
+    
+    e.preventDefault()
+    e.stopPropagation()
+    
+    setIsDraggingFloating(true)
+    setDraggedFloatingElement(element)
+    
+    const rect = canvasRef.current?.getBoundingClientRect() || { left: 0, top: 0 }
+    const startX = e.clientX - rect.left - element.props.position.x
+    const startY = e.clientY - rect.top - element.props.position.y
+
+    const handleMouseMove = (moveEvent) => {
+      if (!canvasRef.current) return
+      
+      const canvasRect = canvasRef.current.getBoundingClientRect()
+      const newX = Math.max(0, Math.min(
+        canvasRect.width - (element.props.width || 200),
+        moveEvent.clientX - canvasRect.left - startX
+      ))
+      const newY = Math.max(0, Math.min(
+        canvasRect.height - (element.props.height || 60),
+        moveEvent.clientY - canvasRect.top - startY
+      ))
+      
+      updateElement(element.id, {
+        position: { x: newX, y: newY }
+      })
+    }
+
+    const handleMouseUp = () => {
+      setIsDraggingFloating(false)
+      setDraggedFloatingElement(null)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [isEditable, isResizing, updateElement])
+
+  const handleResizeMouseDown = useCallback((e, element, direction) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    setIsResizing(true)
+    
+    const startX = e.clientX
+    const startY = e.clientY
+    const startWidth = element.props.width || 200
+    const startHeight = element.props.height || 60
+
+    const handleMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX
+      const deltaY = moveEvent.clientY - startY
+      
+      let newWidth = startWidth
+      let newHeight = startHeight
+      
+      if (direction.includes('e')) {
+        newWidth = Math.max(50, startWidth + deltaX)
+      }
+      if (direction.includes('s')) {
+        newHeight = Math.max(20, startHeight + deltaY)
+      }
+      if (direction === 'se') {
+        // Maintain aspect ratio for corner resize if shift is held
+        if (moveEvent.shiftKey) {
+          const ratio = startWidth / startHeight
+          if (deltaX > deltaY) {
+            newHeight = newWidth / ratio
+          } else {
+            newWidth = newHeight * ratio
+          }
+        }
+      }
+      
+      updateElement(element.id, { width: newWidth, height: newHeight })
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [updateElement])
+
+  const handleCanvasClick = (e) => {
+    if (e.target === canvasRef.current) {
+      setSelectedElement(null)
+    }
+  }
+
+  // Render template-specific content
+  if (template !== 'blank' && templateComponents[template]) {
+    const TemplateComponent = templateComponents[template]
     return (
-      <div className="min-h-screen relative">
-        {/* Regular elements in document flow */}
-        {elements.filter(el => el.type !== 'floatingText' && el.type !== 'floatingButton').map((element, index) => {
-          const Component = componentMap[element.type]
-          if (!Component) return null
-
-          return (
-            <div key={element.id} className="relative">
-              <Component
-                {...element.props}
-                isEditing={false}
-              />
-            </div>
-          )
-        })}
-
-        {/* Floating elements positioned based on isStatic setting */}
-        {elements.filter(el => el.type === 'floatingText' || el.type === 'floatingButton').map((element) => {
-          const Component = componentMap[element.type]
-          if (!Component || !element.props.position) return null
-
-          return (
-            <div
-              key={element.id}
-              className={element.props.isStatic ? "absolute z-50" : "fixed z-50"}
-              style={{
-                left: `${element.props.position.x}px`,
-                top: `${element.props.position.y}px`,
-                width: `${element.props.width || 200}px`,
-                height: `${element.props.height || 60}px`
-              }}
-            >
-              <Component
-                {...element.props}
-                isEditing={false}
-              />
-            </div>
-          )
-        })}
+      <div className="min-h-screen">
+        <TemplateComponent
+          data={templateData}
+          isEditable={isEditable}
+          onUpdate={updateTemplateData}
+        />
       </div>
     )
   }
-
-  // Editable mode - Full screen layout
+  
   return (
-    <div className="fixed inset-0 bg-black z-50 flex">
+    <div className="min-h-screen flex">
       {/* Sidebar */}
-      <div className="w-80 bg-gray-900 border-r border-gray-700 flex flex-col z-60">
-        <div className="p-4 border-b border-gray-700">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-white font-semibold">Page Builder</h2>
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-white text-xl"
-              >
-                ×
-              </button>
-            )}
+      {isEditable && (
+        <div className="w-72 bg-gray-900 border-r border-gray-800 flex flex-col">
+          {/* Toolbar */}
+          <div className="p-4 border-b border-gray-800">
+            <h3 className="text-white font-medium mb-3">Add Elements</h3>
+            <ElementToolbar onAddElement={addElement} />
           </div>
-          <ElementToolbar onAddElement={addElement} />
+
+          {/* Element Editor */}
+          {selectedElement && (
+            <div className="flex-1 border-t border-gray-800 bg-gray-800">
+              <ElementEditor
+                element={selectedElement}
+                onUpdate={updateElement}
+                onRemove={removeElement}
+                onClose={() => setSelectedElement(null)}
+              />
+            </div>
+          )}
+
+          {!selectedElement && (
+            <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
+              Select an element to edit its properties
+            </div>
+          )}
         </div>
+      )}
 
-        {selectedElement && (
-          <div className="flex-1 overflow-y-auto">
-            <ElementEditor
-              element={selectedElement}
-              onUpdate={updateElement}
-              onRemove={removeElement}
-              onClose={() => setSelectedElement(null)}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Main Canvas */}
-      <div className="flex-1 relative overflow-y-auto">
-        <div 
+      {/* Main Canvas Area */}
+      <div className="flex-1 relative bg-gray-100 min-h-screen">
+        <div
           ref={canvasRef}
-          className="min-h-full relative bg-gray-800"
-          style={{ 
-            backgroundImage: 'radial-gradient(circle, #374151 1px, transparent 1px)',
-            backgroundSize: '20px 20px'
-          }}
+          className="relative min-h-screen bg-white overflow-hidden"
+          onClick={handleCanvasClick}
         >
-          {/* Regular elements in drag-drop system */}
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="page-elements">
               {(provided) => (
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className="min-h-full relative"
+                  className="min-h-screen"
                 >
                   {elements.filter(el => el.type !== 'floatingText' && el.type !== 'floatingButton').map((element, index) => {
                     const Component = componentMap[element.type]
@@ -409,30 +416,28 @@ export default function PageBuilder({ content, isEditable = false, onSave, onClo
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            className={`relative group ${
+                            className={`relative ${
+                              isEditable ? 'group' : ''
+                            } ${
                               snapshot.isDragging ? 'opacity-50' : ''
                             }`}
                           >
-                            <div
-                              {...provided.dragHandleProps}
-                              className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <button
-                                onClick={() => setSelectedElement(element)}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs mr-1"
+                            {isEditable && (
+                              <div
+                                {...provided.dragHandleProps}
+                                className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
                               >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => removeElement(element.id)}
-                                className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs"
-                              >
-                                Delete
-                              </button>
-                            </div>
+                                <button
+                                  onClick={() => setSelectedElement(element)}
+                                  className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                            )}
                             <Component
                               {...element.props}
-                              isEditing={true}
+                              isEditing={isEditable}
                               onUpdate={(newProps) => updateElement(element.id, newProps)}
                             />
                           </div>

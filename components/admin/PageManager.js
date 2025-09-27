@@ -108,13 +108,16 @@ export default function PageManager() {
 
   const loadPageContent = async (page) => {
     try {
+      // Get the most recent page content record
       const { data } = await supabase
         .from('page_content')
         .select('*')
         .eq('page_id', page.id)
-        .single()
+        .order('created_at', { ascending: false })
+        .limit(1)
 
-      setPageContent(data?.content || getDefaultTemplateContent(page.template))
+      const content = data && data.length > 0 ? data[0].content : getDefaultTemplateContent(page.template)
+      setPageContent(content)
       setCurrentPage(page)
       setEditingContent(true)
     } catch (error) {
@@ -159,20 +162,22 @@ export default function PageManager() {
     console.log('🔥 SAVE DEBUG - special_guests in content:', content?.special_guests)
     
     try {
-      const { data: existingContent } = await supabase
+      // Get the most recent page content record
+      const { data: existingRecords } = await supabase
         .from('page_content')
         .select('id')
         .eq('page_id', currentPage.id)
-        .single()
+        .order('created_at', { ascending: false })
+        .limit(1)
 
-      console.log('🔥 SAVE DEBUG - existingContent:', existingContent)
+      console.log('🔥 SAVE DEBUG - existingRecords:', existingRecords)
 
-      if (existingContent) {
-        console.log('🔥 SAVE DEBUG - Updating existing content')
+      if (existingRecords && existingRecords.length > 0) {
+        console.log('🔥 SAVE DEBUG - Updating existing content with id:', existingRecords[0].id)
         const { error } = await supabase
           .from('page_content')
           .update({ content, updated_at: new Date().toISOString() })
-          .eq('page_id', currentPage.id)
+          .eq('id', existingRecords[0].id)
 
         console.log('🔥 SAVE DEBUG - Update error:', error)
         if (error) throw error

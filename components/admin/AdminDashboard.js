@@ -16,6 +16,7 @@ import StaffManager from '@/components/admin/StaffManager'
 import MenuManager from '@/components/admin/MenuManager'
 import PageManager from '@/components/admin/PageManager'
 import AdminManager from '@/components/admin/AdminManager'
+import FooterManager from '@/components/admin/FooterManager'
 import ShadecardManager from '@/components/admin/ShadecardManager'
 
 // Add this function at the top of AdminDashboard.js
@@ -120,12 +121,14 @@ export default function AdminDashboard({ onLogout }) {
     { id: 'menu', label: 'Menu', icon: MenuIcon },
     { id: 'admins', label: 'Admins', icon: Settings },
     { id: 'shadecard', label: 'Shadecard', icon: Settings }, 
+    { id: 'footer', label: 'Footer', icon: Globe },
+    { id: 'site-settings', label: 'Site Settings', icon: Globe }
   ]
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardOverview stats={stats} recentActivity={recentActivity} onTabChange={setActiveTab} />
+        return <DashboardOverview stats={stats} />
       case 'pages':
         return <PageManager />
       case 'staff':
@@ -136,8 +139,12 @@ export default function AdminDashboard({ onLogout }) {
         return <AdminManager />
       case 'shadecard':
         return <ShadecardManager /> 
+      case 'footer':
+        return <FooterManager />
+      case 'site-settings':
+        return <SiteSettingsManager />
       default:
-        return <DashboardOverview stats={stats} recentActivity={recentActivity} onTabChange={setActiveTab} />
+        return <DashboardOverview stats={stats} />
     }
   }
 

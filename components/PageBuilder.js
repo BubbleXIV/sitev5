@@ -19,9 +19,9 @@ import DividerSection from '@/components/builder/DividerSection'
 import TestimonialSection from '@/components/builder/TestimonialSection'
 
 // Import template components
-import EventTemplate from '@/components/templates/EventTemplate'
-import GalleryTemplate from '@/components/templates/GalleryTemplate' 
+import GalleryTemplate from '@/components/templates/GalleryTemplate'
 import AffiliateTemplate from '@/components/templates/AffiliateTemplate'
+import EventTemplate from '@/components/templates/EventTemplate'
 
 const componentMap = {
   hero: HeroSection,
@@ -347,9 +347,9 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
     return (
       <div className="min-h-screen">
         <TemplateComponent
-          content={templateData}
+          data={templateData}
           isEditable={isEditable}
-          onSave={onSave}
+          onUpdate={updateTemplateData}
         />
       </div>
     )

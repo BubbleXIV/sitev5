@@ -3,20 +3,32 @@ import { useState } from 'react'
 import { Plus, Edit, Trash2, ExternalLink, MessageCircle, Calendar, MapPin } from 'lucide-react'
 import ImageUpload from '@/components/ImageUpload'
 
-export default function EventTemplate({ data, isEditable, onUpdate }) {
+export default function EventTemplate({ content, isEditable, onSave }) {
   const [isEditingHero, setIsEditingHero] = useState(false)
   const [isEditingGuest, setIsEditingGuest] = useState(null)
   const [isAddingGuest, setIsAddingGuest] = useState(false)
   const [isEditingAffiliates, setIsEditingAffiliates] = useState(false)
   const [isEditingButtons, setIsEditingButtons] = useState(false)
 
+  // Use content prop instead of data prop for consistency with PageBuilder
   const {
     hero_image = '',
     overlay_text = '',
     action_buttons = [],
     affiliate_logos = [],
     special_guests = []
-  } = data
+  } = content || {}
+
+  // Update onUpdate to work with onSave prop
+  const onUpdate = (field, value) => {
+    if (onSave) {
+      const updatedContent = {
+        ...content,
+        [field]: value
+      }
+      onSave(updatedContent)
+    }
+  }
 
   const updateGuest = (index, guestData) => {
     const newGuests = [...special_guests]

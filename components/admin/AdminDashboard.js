@@ -10,17 +10,13 @@ import {
   Plus,
   Edit,
   Trash2,
-  LogOut,
-  Globe,
-  ChevronDown
+  LogOut
 } from 'lucide-react'
 import StaffManager from '@/components/admin/StaffManager'
 import MenuManager from '@/components/admin/MenuManager'
 import PageManager from '@/components/admin/PageManager'
 import AdminManager from '@/components/admin/AdminManager'
 import ShadecardManager from '@/components/admin/ShadecardManager'
-import FooterManager from '@/components/admin/FooterManager'
-import SiteSettingsManager from '@/components/admin/SiteSettingsManager'
 
 export default function AdminDashboard({ onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -28,12 +24,13 @@ export default function AdminDashboard({ onLogout }) {
     totalPages: 0,
     totalStaff: 0,
     totalMenuItems: 0,
-    totalAdmins: 0,
-    totalShadecards: 0
+    totalAdmins: 0
   })
+  const [recentActivity, setRecentActivity] = useState([])
 
   useEffect(() => {
     fetchStats()
+    fetchRecentActivity()
   }, [])
 
   const fetchStats = async () => {
@@ -58,8 +55,46 @@ export default function AdminDashboard({ onLogout }) {
     }
   }
 
+  const fetchRecentActivity = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_activity')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (error) throw error
+      setRecentActivity(data || [])
+    } catch (error) {
+      console.error('Error fetching recent activity:', error)
+      setRecentActivity([])
+    }
+  }
+
+  const logActivity = async (action, details) => {
+    try {
+      const userEmail = localStorage.getItem('admin_email') || 'Unknown'
+      
+      await supabase
+        .from('admin_activity')
+        .insert([{
+          user_email: userEmail,
+          action,
+          details,
+          created_at: new Date().toISOString()
+        }])
+      
+      // Refresh activity log
+      fetchRecentActivity()
+    } catch (error) {
+      console.error('Error logging activity:', error)
+    }
+  }
+
   const handleLogout = () => {
+    logActivity('Logout', 'Admin logged out')
     localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_email')
     onLogout()
   }
 
@@ -70,14 +105,12 @@ export default function AdminDashboard({ onLogout }) {
     { id: 'menu', label: 'Menu', icon: MenuIcon },
     { id: 'admins', label: 'Admins', icon: Settings },
     { id: 'shadecard', label: 'Shadecard', icon: Settings }, 
-    { id: 'footer', label: 'Footer', icon: Globe },
-    { id: 'site-settings', label: 'Site Settings', icon: Globe }
   ]
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardOverview stats={stats} />
+        return <DashboardOverview stats={stats} recentActivity={recentActivity} onTabChange={setActiveTab} />
       case 'pages':
         return <PageManager />
       case 'staff':
@@ -88,12 +121,8 @@ export default function AdminDashboard({ onLogout }) {
         return <AdminManager />
       case 'shadecard':
         return <ShadecardManager /> 
-      case 'footer':
-        return <FooterManager />
-      case 'site-settings':
-        return <SiteSettingsManager />
       default:
-        return <DashboardOverview stats={stats} />
+        return <DashboardOverview stats={stats} recentActivity={recentActivity} onTabChange={setActiveTab} />
     }
   }
 
@@ -153,7 +182,7 @@ export default function AdminDashboard({ onLogout }) {
 }
 
 // Dashboard Overview Component
-function DashboardOverview({ stats }) {
+function DashboardOverview({ stats, recentActivity, onTabChange }) {
   const statCards = [
     { label: 'Total Pages', value: stats.totalPages, icon: FileText, color: 'from-blue-500 to-blue-600' },
     { label: 'Staff Members', value: stats.totalStaff, icon: Users, color: 'from-green-500 to-green-600' },
@@ -161,6 +190,16 @@ function DashboardOverview({ stats }) {
     { label: 'Shadecards', value: stats.totalShadecards || 0, icon: Settings, color: 'from-yellow-500 to-yellow-600' },
     { label: 'Administrators', value: stats.totalAdmins, icon: Settings, color: 'from-red-500 to-red-600' },
   ]
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
 
   return (
     <div className="space-y-8">
@@ -191,15 +230,24 @@ function DashboardOverview({ stats }) {
         <div className="card">
           <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
           <div className="space-y-3">
-            <button className="w-full btn-primary text-left">
+            <button 
+              onClick={() => onTabChange('pages')}
+              className="w-full btn-primary text-left"
+            >
               <Plus size={16} className="inline mr-2" />
               Add New Page
             </button>
-            <button className="w-full btn-secondary text-left">
+            <button 
+              onClick={() => onTabChange('staff')}
+              className="w-full btn-secondary text-left"
+            >
               <Plus size={16} className="inline mr-2" />
               Add Staff Member
             </button>
-            <button className="w-full btn-secondary text-left">
+            <button 
+              onClick={() => onTabChange('menu')}
+              className="w-full btn-secondary text-left"
+            >
               <Plus size={16} className="inline mr-2" />
               Add Menu Item
             </button>
@@ -208,8 +256,25 @@ function DashboardOverview({ stats }) {
 
         <div className="card">
           <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
-          <div className="space-y-3 text-gray-300">
-            <p className="text-sm">No recent activity to display.</p>
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {recentActivity.length > 0 ? (
+              recentActivity.map((activity, index) => (
+                <div key={index} className="text-sm border-l-2 border-nightshade-500 pl-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-white font-medium">{activity.action}</p>
+                      <p className="text-gray-400 text-xs">{activity.details}</p>
+                      <p className="text-gray-500 text-xs">by {activity.user_email}</p>
+                    </div>
+                    <span className="text-gray-500 text-xs whitespace-nowrap ml-2">
+                      {formatDate(activity.created_at)}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-400">No recent activity to display.</p>
+            )}
           </div>
         </div>
       </div>

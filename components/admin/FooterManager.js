@@ -106,30 +106,30 @@ export default function FooterManager() {
     )
   }
 
-  const socialFields = [
+  const socialIcons = [
     {
       key: 'twitter_url',
-      label: 'Twitter/X URL',
-      placeholder: 'https://x.com/yourusername',
-      icon: '𝕏'
+      icon: TwitterIcon,
+      name: 'Twitter/X',
+      color: 'hover:text-blue-300'
     },
     {
       key: 'bluesky_url',
-      label: 'Bluesky URL',
-      placeholder: 'https://bsky.app/profile/yourusername',
-      icon: '🦋'
+      icon: BlueskyIcon,
+      name: 'Bluesky',
+      color: 'hover:text-sky-400'
     },
     {
-      key: 'instagram_url',
-      label: 'Instagram URL',
-      placeholder: 'https://instagram.com/yourusername',
-      icon: '📸'
+      key: 'instagram_url', 
+      icon: Instagram,
+      name: 'Instagram',
+      color: 'hover:text-pink-400'
     },
     {
       key: 'discord_url',
-      label: 'Discord Server URL',
-      placeholder: 'https://discord.gg/yourinvite',
-      icon: '💬'
+      icon: DiscordIcon,
+      name: 'Discord', 
+      color: 'hover:text-indigo-400'
     }
   ]
 

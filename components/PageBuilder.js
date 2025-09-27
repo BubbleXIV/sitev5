@@ -347,9 +347,9 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
     return (
       <div className="min-h-screen">
         <TemplateComponent
-          data={templateData}
+          content={templateData}
           isEditable={isEditable}
-          onUpdate={updateTemplateData}
+          onSave={onSave}
         />
       </div>
     )

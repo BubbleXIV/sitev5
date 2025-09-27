@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 import { motion } from 'framer-motion'
 import BackgroundImageSection from '@/components/builder/BackgroundImageSection'
@@ -19,9 +19,9 @@ import DividerSection from '@/components/builder/DividerSection'
 import TestimonialSection from '@/components/builder/TestimonialSection'
 
 // Import template components
+import EventTemplate from '@/components/templates/EventTemplate'
 import GalleryTemplate from '@/components/templates/GalleryTemplate'
 import AffiliateTemplate from '@/components/templates/AffiliateTemplate'
-import EventTemplate from '@/components/templates/EventTemplate'
 
 const componentMap = {
   hero: HeroSection,
@@ -39,43 +39,49 @@ const componentMap = {
   floatingButton: FloatingButtonSection,
 }
 
-const templateComponents = {
+const templateMap = {
+  event: EventTemplate,
   gallery: GalleryTemplate,
   affiliate: AffiliateTemplate,
-  event: EventTemplate,
 }
 
-export default function PageBuilder({ content, isEditable = false, onSave, template = 'blank' }) {
+export default function PageBuilder({ content, isEditable = false, onSave, template }) {
   const [elements, setElements] = useState(content?.elements || [])
-  const [templateData, setTemplateData] = useState({
-    gallery_images: content?.gallery_images || [],
-    gallery_categories: content?.gallery_categories || [],
-    affiliates: content?.affiliates || [],
-    hero_image: content?.hero_image || '',
-    overlay_text: content?.overlay_text || '',
-    action_buttons: content?.action_buttons || [],
-    affiliate_logos: content?.affiliate_logos || [],
-    special_guests: content?.special_guests || []
-  })
   const [selectedElement, setSelectedElement] = useState(null)
   const [isDraggingFloating, setIsDraggingFloating] = useState(false)
   const [draggedFloatingElement, setDraggedFloatingElement] = useState(null)
   const [isResizing, setIsResizing] = useState(false)
-  const canvasRef = useRef(null)
+  
+  // Template-specific state
+  const [templateData, setTemplateData] = useState(() => {
+    if (template && template !== 'blank') {
+      // Extract template-specific data from content
+      const { elements, ...templateSpecificData } = content || {}
+      return templateSpecificData
+    }
+    return {}
+  })
 
   useEffect(() => {
     setElements(content?.elements || [])
-    setTemplateData({
-      gallery_images: content?.gallery_images || [],
-      gallery_categories: content?.gallery_categories || [],
-      affiliates: content?.affiliates || [],
-      hero_image: content?.hero_image || '',
-      overlay_text: content?.overlay_text || '',
-      action_buttons: content?.action_buttons || [],
-      affiliate_logos: content?.affiliate_logos || [],
-      special_guests: content?.special_guests || []
-    })
-  }, [content])
+    if (template && template !== 'blank') {
+      const { elements, ...templateSpecificData } = content || {}
+      setTemplateData(templateSpecificData)
+    }
+  }, [content, template])
+
+  // Handle template-specific updates
+  const handleTemplateUpdate = (field, value) => {
+    const newTemplateData = { ...templateData, [field]: value }
+    setTemplateData(newTemplateData)
+    
+    if (onSave) {
+      onSave({
+        elements,
+        ...newTemplateData
+      })
+    }
+  }
 
   const onDragEnd = (result) => {
     if (!result.destination || !isEditable) return
@@ -106,17 +112,6 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
     }
   }
 
-  const updateTemplateData = (key, value) => {
-    const newTemplateData = { ...templateData, [key]: value }
-    setTemplateData(newTemplateData)
-    if (onSave) {
-      onSave({
-        elements,
-        ...newTemplateData
-      })
-    }
-  }
-
   const addElement = (type) => {
     const newElement = {
       id: `${type}-${Date.now()}`,
@@ -143,6 +138,75 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
         ...templateData
       })
     }
+  }
+
+  // Floating element drag handlers
+  const handleFloatingMouseDown = (e, element) => {
+    if (e.button !== 0 || isResizing) return
+    
+    e.preventDefault()
+    setIsDraggingFloating(true)
+    setDraggedFloatingElement(element)
+    
+    const startX = e.clientX - element.props.position.x
+    const startY = e.clientY - element.props.position.y
+    
+    const handleMouseMove = (e) => {
+      const newX = Math.max(0, e.clientX - startX)
+      const newY = Math.max(0, e.clientY - startY)
+      
+      updateElement(element.id, {
+        position: { x: newX, y: newY }
+      })
+    }
+    
+    const handleMouseUp = () => {
+      setIsDraggingFloating(false)
+      setDraggedFloatingElement(null)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }
+
+  const handleResizeMouseDown = (e, element, direction) => {
+    e.stopPropagation()
+    e.preventDefault()
+    
+    setIsResizing(true)
+    
+    const startX = e.clientX
+    const startY = e.clientY
+    const startWidth = element.props.width || 200
+    const startHeight = element.props.height || 60
+    
+    const handleMouseMove = (e) => {
+      let newWidth = startWidth
+      let newHeight = startHeight
+      
+      if (direction.includes('e')) {
+        newWidth = Math.max(50, startWidth + (e.clientX - startX))
+      }
+      if (direction.includes('s')) {
+        newHeight = Math.max(30, startHeight + (e.clientY - startY))
+      }
+      
+      updateElement(element.id, {
+        width: newWidth,
+        height: newHeight
+      })
+    }
+    
+    const handleMouseUp = () => {
+      setIsResizing(false)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
   }
 
   const getDefaultProps = (type) => {
@@ -225,8 +289,6 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
         padding: 'px-6 py-3',
         borderRadius: 'rounded-lg',
         position: { x: 50, y: 50 },
-        width: 200,
-        height: 60,
         animation: 'fade-in'
       },
       floatingButton: {
@@ -235,140 +297,31 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
         style: 'primary',
         size: 'medium',
         position: { x: 50, y: 50 },
-        width: 150,
-        height: 40,
         animation: 'fade-in'
       }
     }
     return defaults[type] || {}
   }
 
-  // Floating element mouse handlers
-  const handleFloatingMouseDown = useCallback((e, element) => {
-    if (!isEditable || isResizing) return
-    
-    e.preventDefault()
-    e.stopPropagation()
-    
-    setIsDraggingFloating(true)
-    setDraggedFloatingElement(element)
-    
-    const rect = canvasRef.current?.getBoundingClientRect() || { left: 0, top: 0 }
-    const startX = e.clientX - rect.left - element.props.position.x
-    const startY = e.clientY - rect.top - element.props.position.y
-
-    const handleMouseMove = (moveEvent) => {
-      if (!canvasRef.current) return
-      
-      const canvasRect = canvasRef.current.getBoundingClientRect()
-      const newX = Math.max(0, Math.min(
-        canvasRect.width - (element.props.width || 200),
-        moveEvent.clientX - canvasRect.left - startX
-      ))
-      const newY = Math.max(0, Math.min(
-        canvasRect.height - (element.props.height || 60),
-        moveEvent.clientY - canvasRect.top - startY
-      ))
-      
-      updateElement(element.id, {
-        position: { x: newX, y: newY }
-      })
-    }
-
-    const handleMouseUp = () => {
-      setIsDraggingFloating(false)
-      setDraggedFloatingElement(null)
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }, [isEditable, isResizing, updateElement])
-
-  const handleResizeMouseDown = useCallback((e, element, direction) => {
-    e.preventDefault()
-    e.stopPropagation()
-    
-    setIsResizing(true)
-    
-    const startX = e.clientX
-    const startY = e.clientY
-    const startWidth = element.props.width || 200
-    const startHeight = element.props.height || 60
-
-    const handleMouseMove = (moveEvent) => {
-      const deltaX = moveEvent.clientX - startX
-      const deltaY = moveEvent.clientY - startY
-      
-      let newWidth = startWidth
-      let newHeight = startHeight
-      
-      if (direction.includes('e')) {
-        newWidth = Math.max(50, startWidth + deltaX)
-      }
-      if (direction.includes('s')) {
-        newHeight = Math.max(20, startHeight + deltaY)
-      }
-      if (direction === 'se') {
-        // Maintain aspect ratio for corner resize if shift is held
-        if (moveEvent.shiftKey) {
-          const ratio = startWidth / startHeight
-          if (deltaX > deltaY) {
-            newHeight = newWidth / ratio
-          } else {
-            newWidth = newHeight * ratio
-          }
-        }
-      }
-      
-      updateElement(element.id, { width: newWidth, height: newHeight })
-    }
-
-    const handleMouseUp = () => {
-      setIsResizing(false)
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }, [updateElement])
-
-  const handleCanvasClick = (e) => {
-    if (e.target === canvasRef.current) {
-      setSelectedElement(null)
-    }
-  }
-
-  // Render template-specific content
-  if (template !== 'blank' && templateComponents[template]) {
-    const TemplateComponent = templateComponents[template]
+  // If this is a template page, render the template directly
+  if (template && template !== 'blank' && templateMap[template]) {
+    const TemplateComponent = templateMap[template]
     return (
-      <div className="min-h-screen">
-        <TemplateComponent
-          data={templateData}
-          isEditable={isEditable}
-          onUpdate={updateTemplateData}
-        />
-      </div>
+      <TemplateComponent
+        data={templateData}
+        isEditable={isEditable}
+        onUpdate={handleTemplateUpdate}
+      />
     )
   }
-
+  
   return (
-    <div className="min-h-screen flex">
-      {/* Sidebar */}
+    <div className="min-h-screen relative">
       {isEditable && (
-        <div className="w-72 bg-gray-900 border-r border-gray-800 flex flex-col">
-          {/* Toolbar */}
-          <div className="p-4 border-b border-gray-800">
-            <h3 className="text-white font-medium mb-3">Add Elements</h3>
-            <ElementToolbar onAddElement={addElement} />
-          </div>
-
-          {/* Element Editor */}
+        <div className="fixed top-20 left-4 z-50 bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-lg p-4 w-64">
+          <ElementToolbar onAddElement={addElement} />
           {selectedElement && (
-            <div className="flex-1 border-t border-gray-800 bg-gray-800">
+            <div className="mt-4 max-h-96 overflow-y-auto bg-gray-800 rounded-lg">
               <ElementEditor
                 element={selectedElement}
                 onUpdate={updateElement}
@@ -377,22 +330,12 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
               />
             </div>
           )}
-
-          {!selectedElement && (
-            <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
-              Select an element to edit its properties
-            </div>
-          )}
         </div>
       )}
 
-      {/* Main Canvas Area */}
-      <div className="flex-1 relative bg-gray-100 min-h-screen">
-        <div
-          ref={canvasRef}
-          className="relative min-h-screen bg-white overflow-hidden"
-          onClick={handleCanvasClick}
-        >
+      {/* Canvas container */}
+      <div className="relative" style={{ minHeight: '100vh' }}>
+        <div className="min-h-screen">
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="page-elements">
               {(provided) => (
@@ -464,7 +407,6 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
             </Droppable>
           </DragDropContext>
         </div>
-      </div>
 
         {/* Floating elements positioned within canvas */}
         {elements.filter(el => el.type === 'floatingText' || el.type === 'floatingButton').map((element) => {
@@ -546,6 +488,7 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
             </div>
           )
         })}
+      </div>
     </div>
   )
 }
@@ -928,6 +871,199 @@ function renderElementEditor(type, props, updateProp) {
             onChange={(e) => updateProp('alt', e.target.value)}
             className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
           />
+        </>
+      )
+    case 'video':
+      return (
+        <>
+          <input
+            type="url"
+            placeholder="Video URL"
+            value={props.src || ''}
+            onChange={(e) => updateProp('src', e.target.value)}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+          />
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="autoplay"
+              checked={props.autoplay || false}
+              onChange={(e) => updateProp('autoplay', e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="autoplay" className="text-sm text-gray-300">Autoplay</label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="muted"
+              checked={props.muted !== false}
+              onChange={(e) => updateProp('muted', e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="muted" className="text-sm text-gray-300">Muted</label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="loop"
+              checked={props.loop || false}
+              onChange={(e) => updateProp('loop', e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="loop" className="text-sm text-gray-300">Loop</label>
+          </div>
+        </>
+      )
+    case 'spacer':
+      return (
+        <select
+          value={props.height || 'medium'}
+          onChange={(e) => updateProp('height', e.target.value)}
+          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+        >
+          <option value="small">Small (2rem)</option>
+          <option value="medium">Medium (4rem)</option>
+          <option value="large">Large (8rem)</option>
+          <option value="xl">Extra Large (12rem)</option>
+        </select>
+      )
+    case 'divider':
+      return (
+        <>
+          <select
+            value={props.style || 'line'}
+            onChange={(e) => updateProp('style', e.target.value)}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+          >
+            <option value="line">Line</option>
+            <option value="dashed">Dashed</option>
+            <option value="dotted">Dotted</option>
+            <option value="double">Double</option>
+          </select>
+          <select
+            value={props.color || 'white'}
+            onChange={(e) => updateProp('color', e.target.value)}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+          >
+            <option value="white">White</option>
+            <option value="gray">Gray</option>
+            <option value="blue">Blue</option>
+            <option value="red">Red</option>
+            <option value="green">Green</option>
+            <option value="yellow">Yellow</option>
+            <option value="purple">Purple</option>
+          </select>
+          <select
+            value={props.thickness || 'thin'}
+            onChange={(e) => updateProp('thickness', e.target.value)}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+          >
+            <option value="thin">Thin (1px)</option>
+            <option value="medium">Medium (2px)</option>
+            <option value="thick">Thick (4px)</option>
+          </select>
+        </>
+      )
+    case 'testimonial':
+      return (
+        <>
+          <textarea
+            placeholder="Quote"
+            value={props.quote || ''}
+            onChange={(e) => updateProp('quote', e.target.value)}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white h-24"
+          />
+          <input
+            type="text"
+            placeholder="Author Name"
+            value={props.author || ''}
+            onChange={(e) => updateProp('author', e.target.value)}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+          />
+          <input
+            type="text"
+            placeholder="Role/Title"
+            value={props.role || ''}
+            onChange={(e) => updateProp('role', e.target.value)}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+          />
+          <input
+            type="url"
+            placeholder="Avatar Image URL"
+            value={props.avatar || ''}
+            onChange={(e) => updateProp('avatar', e.target.value)}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+          />
+        </>
+      )
+    case 'gallery':
+      return (
+        <>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Columns</label>
+            <select
+              value={props.columns || 3}
+              onChange={(e) => updateProp('columns', parseInt(e.target.value))}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+            >
+              <option value={1}>1 Column</option>
+              <option value={2}>2 Columns</option>
+              <option value={3}>3 Columns</option>
+              <option value={4}>4 Columns</option>
+              <option value={5}>5 Columns</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Spacing</label>
+            <select
+              value={props.spacing || 'medium'}
+              onChange={(e) => updateProp('spacing', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+            >
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </div>
+        </>
+      )
+    case 'contact':
+      return (
+        <>
+          <input
+            type="text"
+            placeholder="Form Title"
+            value={props.title || ''}
+            onChange={(e) => updateProp('title', e.target.value)}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+          />
+          <div>
+            <label className="block text-xs text-gray-400 mb-2">Fields</label>
+            <div className="space-y-2">
+              {['name', 'email', 'phone', 'message', 'subject'].map(field => (
+                <div key={field} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={field}
+                    checked={props.fields?.includes(field) || false}
+                    onChange={(e) => {
+                      const currentFields = props.fields || ['name', 'email', 'message']
+                      if (e.target.checked) {
+                        updateProp('fields', [...currentFields, field])
+                      } else {
+                        updateProp('fields', currentFields.filter(f => f !== field))
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor={field} className="text-sm text-gray-300 capitalize">
+                    {field}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
         </>
       )
     default:

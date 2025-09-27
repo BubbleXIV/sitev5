@@ -18,6 +18,21 @@ import PageManager from '@/components/admin/PageManager'
 import AdminManager from '@/components/admin/AdminManager'
 import ShadecardManager from '@/components/admin/ShadecardManager'
 
+// Add this function at the top of AdminDashboard.js
+const getCurrentAdminUsername = () => {
+  try {
+    const token = localStorage.getItem('admin_token')
+    if (!token) return 'Unknown'
+    
+    // Decode JWT token (simple base64 decode of payload)
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.username || 'Unknown'
+  } catch (error) {
+    console.error('Error decoding token:', error)
+    return 'Unknown'
+  }
+}
+
 export default function AdminDashboard({ onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [stats, setStats] = useState({
@@ -73,12 +88,12 @@ export default function AdminDashboard({ onLogout }) {
 
   const logActivity = async (action, details) => {
     try {
-      const userEmail = localStorage.getItem('admin_email') || 'Unknown'
+      const username = getCurrentAdminUsername()
       
       await supabase
         .from('admin_activity')
         .insert([{
-          user_email: userEmail,
+          user_email: username, // This will now contain the actual username
           action,
           details,
           created_at: new Date().toISOString()

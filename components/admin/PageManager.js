@@ -153,6 +153,11 @@ export default function PageManager() {
   }
 
   const savePageContent = async (content) => {
+    console.log('🔥 SAVE DEBUG - savePageContent called with:', content)
+    console.log('🔥 SAVE DEBUG - currentPage:', currentPage)
+    console.log('🔥 SAVE DEBUG - currentPage.id:', currentPage?.id)
+    console.log('🔥 SAVE DEBUG - special_guests in content:', content?.special_guests)
+    
     try {
       const { data: existingContent } = await supabase
         .from('page_content')
@@ -160,14 +165,19 @@ export default function PageManager() {
         .eq('page_id', currentPage.id)
         .single()
 
+      console.log('🔥 SAVE DEBUG - existingContent:', existingContent)
+
       if (existingContent) {
+        console.log('🔥 SAVE DEBUG - Updating existing content')
         const { error } = await supabase
           .from('page_content')
           .update({ content, updated_at: new Date().toISOString() })
           .eq('page_id', currentPage.id)
 
+        console.log('🔥 SAVE DEBUG - Update error:', error)
         if (error) throw error
       } else {
+        console.log('🔥 SAVE DEBUG - Creating new content')
         const { error } = await supabase
           .from('page_content')
           .insert([{
@@ -175,12 +185,16 @@ export default function PageManager() {
             content
           }])
 
+        console.log('🔥 SAVE DEBUG - Insert error:', error)
         if (error) throw error
       }
 
+      // Update local state immediately
+      setPageContent(content)
+      console.log('🔥 SAVE DEBUG - Save completed successfully')
       alert('Page content saved successfully!')
     } catch (error) {
-      console.error('Error saving page content:', error)
+      console.error('🔥 SAVE DEBUG - Error saving page content:', error)
       alert('Error saving page content')
     }
   }

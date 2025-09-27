@@ -3,37 +3,44 @@ import { useState } from 'react'
 import { Plus, Edit, Trash2, ExternalLink, MessageCircle, Calendar, MapPin } from 'lucide-react'
 import ImageUpload from '@/components/ImageUpload'
 
-export default function EventTemplate({ content, isEditable, onSave }) {
+export default function EventTemplate({ content, data, isEditable, onSave, onUpdate }) {
   const [isEditingHero, setIsEditingHero] = useState(false)
   const [isEditingGuest, setIsEditingGuest] = useState(null)
   const [isAddingGuest, setIsAddingGuest] = useState(false)
   const [isEditingAffiliates, setIsEditingAffiliates] = useState(false)
   const [isEditingButtons, setIsEditingButtons] = useState(false)
 
-  // Use content prop instead of data prop for consistency with PageBuilder
+  // Support both prop structures - prioritize content (from PageBuilder) over data (legacy)
+  const templateData = content || data || {}
+  const updateFunction = onSave || onUpdate
+
   const {
     hero_image = '',
     overlay_text = '',
     action_buttons = [],
     affiliate_logos = [],
     special_guests = []
-  } = content || {}
+  } = templateData
 
-  // Update onUpdate to work with onSave prop
-  const onUpdate = (field, value) => {
+  // Create a unified update function that works with both prop structures
+  const handleUpdate = (field, value) => {
     if (onSave) {
+      // PageBuilder style - update entire content object
       const updatedContent = {
-        ...content,
+        ...templateData,
         [field]: value
       }
       onSave(updatedContent)
+    } else if (onUpdate) {
+      // Legacy style - update specific field
+      onUpdate(field, value)
     }
   }
 
   const updateGuest = (index, guestData) => {
     const newGuests = [...special_guests]
     newGuests[index] = { ...newGuests[index], ...guestData }
-    onUpdate('special_guests', newGuests)
+    handleUpdate('special_guests', newGuests)
     setIsEditingGuest(null)
   }
 
@@ -46,13 +53,13 @@ export default function EventTemplate({ content, isEditable, onSave }) {
       link: '',
       ...guestData
     }
-    onUpdate('special_guests', [...special_guests, newGuest])
+    handleUpdate('special_guests', [...special_guests, newGuest])
     setIsAddingGuest(false)
   }
 
   const removeGuest = (index) => {
     const newGuests = special_guests.filter((_, i) => i !== index)
-    onUpdate('special_guests', newGuests)
+    handleUpdate('special_guests', newGuests)
   }
 
   return (
@@ -263,8 +270,8 @@ export default function EventTemplate({ content, isEditable, onSave }) {
           heroImage={hero_image}
           overlayText={overlay_text}
           onSave={(data) => {
-            onUpdate('hero_image', data.hero_image)
-            onUpdate('overlay_text', data.overlay_text)
+            handleUpdate('hero_image', data.hero_image)
+            handleUpdate('overlay_text', data.overlay_text)
             setIsEditingHero(false)
           }}
           onClose={() => setIsEditingHero(false)}
@@ -275,7 +282,7 @@ export default function EventTemplate({ content, isEditable, onSave }) {
         <ButtonEditor
           buttons={action_buttons}
           onSave={(buttons) => {
-            onUpdate('action_buttons', buttons)
+            handleUpdate('action_buttons', buttons)
             setIsEditingButtons(false)
           }}
           onClose={() => setIsEditingButtons(false)}
@@ -286,7 +293,7 @@ export default function EventTemplate({ content, isEditable, onSave }) {
         <AffiliateEditor
           affiliates={affiliate_logos}
           onSave={(affiliates) => {
-            onUpdate('affiliate_logos', affiliates)
+            handleUpdate('affiliate_logos', affiliates)
             setIsEditingAffiliates(false)
           }}
           onClose={() => setIsEditingAffiliates(false)}

@@ -11,35 +11,44 @@ import {
   Edit,
   Trash2,
   LogOut,
+  Globe,
+  ChevronDown,
   Activity,
   Download,
   Calendar,
   Clock,
   Eye,
   TrendingUp,
-  Database
+  Database,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react'
 import StaffManager from '@/components/admin/StaffManager'
 import MenuManager from '@/components/admin/MenuManager'
 import PageManager from '@/components/admin/PageManager'
 import AdminManager from '@/components/admin/AdminManager'
 import ShadecardManager from '@/components/admin/ShadecardManager'
+import FooterManager from '@/components/admin/FooterManager'
+import SiteSettingsManager from '@/components/admin/SiteSettingsManager'
 
 // Activity Logger Hook
 const useActivityLogger = () => {
   const logActivity = async (action, targetType = null, targetId = null, targetName = null, details = {}) => {
     try {
-      const adminData = JSON.parse(localStorage.getItem('admin_token') || '{}')
+      const adminToken = localStorage.getItem('admin_token')
+      if (!adminToken) return
+
+      const adminData = JSON.parse(adminToken)
       
       await supabase.from('admin_activity_logs').insert([{
         admin_id: adminData.id,
-        admin_username: adminData.username,
+        admin_username: adminData.username || adminData.email,
         action,
         target_type: targetType,
         target_id: targetId,
         target_name: targetName,
         details,
-        ip_address: null, // You can implement IP detection if needed
+        ip_address: null,
         user_agent: navigator.userAgent
       }])
     } catch (error) {
@@ -62,18 +71,17 @@ export default function AdminDashboard({ onLogout }) {
     pagesByTemplate: {},
     staffByCategory: {},
     todayActivity: 0,
-    weekActivity: 0
+    weekActivity: 0,
+    totalPageContent: 0
   })
   const [activityLogs, setActivityLogs] = useState([])
-  const [showActivityLogs, setShowActivityLogs] = useState(false)
-  const [activityFilter, setActivityFilter] = useState('all')
   const { logActivity } = useActivityLogger()
 
   useEffect(() => {
     fetchStats()
     fetchActivityLogs()
     // Log dashboard access
-    logActivity('dashboard_access')
+    logActivity('dashboard_access', 'dashboard', null, 'Dashboard')
   }, [])
 
   const fetchStats = async () => {
@@ -149,9 +157,20 @@ export default function AdminDashboard({ onLogout }) {
   }
 
   const handleLogout = async () => {
-    await logActivity('logout')
+    await logActivity('logout', 'auth', null, 'Admin Logout')
     localStorage.removeItem('admin_token')
     onLogout()
+  }
+
+  const handleQuickAction = async (action, targetTab) => {
+    await logActivity('quick_action', 'navigation', null, `Quick ${action}`)
+    setActiveTab(targetTab)
+  }
+
+  const handleTabChange = async (tabId) => {
+    const tabLabel = tabs.find(t => t.id === tabId)?.label
+    await logActivity('navigation', 'tab', null, tabLabel)
+    setActiveTab(tabId)
   }
 
   const exportActivityLogs = async () => {
@@ -201,39 +220,36 @@ export default function AdminDashboard({ onLogout }) {
     window.URL.revokeObjectURL(url)
   }
 
-  const handleQuickAction = async (action, targetTab) => {
-    await logActivity('quick_action', 'navigation', null, `Quick ${action}`)
-    setActiveTab(targetTab)
-  }
-
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'pages', label: 'Pages', icon: FileText },
     { id: 'staff', label: 'Staff', icon: Users },
     { id: 'menu', label: 'Menu', icon: MenuIcon },
     { id: 'admins', label: 'Admins', icon: Settings },
-    { id: 'shadecard', label: 'Shadecard', icon: Settings },
+    { id: 'shadecard', label: 'Shadecard', icon: Settings }, 
+    { id: 'footer', label: 'Footer', icon: Globe },
+    { id: 'site-settings', label: 'Site Settings', icon: Globe },
     { id: 'activity', label: 'Activity Logs', icon: Activity },
   ]
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardOverview 
-          stats={stats} 
-          onQuickAction={handleQuickAction}
-          onRefresh={fetchStats}
-        />
+        return <DashboardOverview stats={stats} onQuickAction={handleQuickAction} onRefresh={fetchStats} />
       case 'pages':
-        return <PageManagerWrapper logActivity={logActivity} />
+        return <PageManager />
       case 'staff':
-        return <StaffManagerWrapper logActivity={logActivity} />
+        return <StaffManager />
       case 'menu':
-        return <MenuManagerWrapper logActivity={logActivity} />
+        return <MenuManager />
       case 'admins':
-        return <AdminManagerWrapper logActivity={logActivity} />
+        return <AdminManager />
       case 'shadecard':
-        return <ShadecardManagerWrapper logActivity={logActivity} />
+        return <ShadecardManager /> 
+      case 'footer':
+        return <FooterManager />
+      case 'site-settings':
+        return <SiteSettingsManager />
       case 'activity':
         return <ActivityLogs 
           logs={activityLogs}
@@ -241,17 +257,8 @@ export default function AdminDashboard({ onLogout }) {
           onRefresh={fetchActivityLogs}
         />
       default:
-        return <DashboardOverview 
-          stats={stats} 
-          onQuickAction={handleQuickAction}
-          onRefresh={fetchStats}
-        />
+        return <DashboardOverview stats={stats} onQuickAction={handleQuickAction} onRefresh={fetchStats} />
     }
-  }
-
-  const handleTabChange = async (tabId) => {
-    await logActivity('navigation', 'tab', null, tabs.find(t => t.id === tabId)?.label)
-    setActiveTab(tabId)
   }
 
   return (
@@ -311,15 +318,50 @@ export default function AdminDashboard({ onLogout }) {
 
 // Dashboard Overview Component
 function DashboardOverview({ stats, onQuickAction, onRefresh }) {
-  const mainStats = [
-    { label: 'Total Pages', value: stats.totalPages, icon: FileText, color: 'from-blue-500 to-blue-600', change: '+2.5%' },
-    { label: 'Staff Members', value: stats.totalStaff, icon: Users, color: 'from-green-500 to-green-600', change: '+1.2%' },
-    { label: 'Menu Items', value: stats.totalMenuItems, icon: MenuIcon, color: 'from-purple-500 to-purple-600', change: '0%' },
-    { label: 'Administrators', value: stats.totalAdmins, icon: Settings, color: 'from-red-500 to-red-600', change: '0%' },
+  const statCards = [
+    { 
+      label: 'Total Pages', 
+      value: stats.totalPages, 
+      icon: FileText, 
+      color: 'from-blue-500 to-blue-600',
+      change: '+5.2%',
+      isPositive: true
+    },
+    { 
+      label: 'Staff Members', 
+      value: stats.totalStaff, 
+      icon: Users, 
+      color: 'from-green-500 to-green-600',
+      change: '+2.1%',
+      isPositive: true
+    },
+    { 
+      label: 'Menu Items', 
+      value: stats.totalMenuItems, 
+      icon: MenuIcon, 
+      color: 'from-purple-500 to-purple-600',
+      change: '0%',
+      isPositive: null
+    },
+    { 
+      label: 'Shadecards', 
+      value: stats.totalShadecards || 0, 
+      icon: Settings, 
+      color: 'from-yellow-500 to-yellow-600',
+      change: '+12.5%',
+      isPositive: true
+    },
+    { 
+      label: 'Administrators', 
+      value: stats.totalAdmins, 
+      icon: Settings, 
+      color: 'from-red-500 to-red-600',
+      change: '0%',
+      isPositive: null
+    },
   ]
 
   const detailedStats = [
-    { label: 'Shadecards', value: stats.totalShadecards || 0, icon: Settings, color: 'from-yellow-500 to-yellow-600' },
     { label: 'Page Content', value: stats.totalPageContent || 0, icon: Database, color: 'from-indigo-500 to-indigo-600' },
     { label: 'Today Activity', value: stats.todayActivity || 0, icon: TrendingUp, color: 'from-pink-500 to-pink-600' },
     { label: 'Week Activity', value: stats.weekActivity || 0, icon: Activity, color: 'from-cyan-500 to-cyan-600' },
@@ -338,31 +380,45 @@ function DashboardOverview({ stats, onQuickAction, onRefresh }) {
         </button>
       </div>
 
-      {/* Main Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {mainStats.map((stat) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {statCards.map((stat) => {
           const Icon = stat.icon
           return (
-            <div key={stat.label} className="card">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className={`p-3 rounded-lg bg-gradient-to-r ${stat.color} mr-4`}>
-                    <Icon size={24} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">{stat.label}</p>
-                    <p className="text-2xl font-bold text-white">{stat.value}</p>
-                  </div>
+            <div key={stat.label} className="card relative">
+              <div className="flex items-center">
+                <div className={`p-3 rounded-lg bg-gradient-to-r ${stat.color} mr-4`}>
+                  <Icon size={24} className="text-white" />
                 </div>
-                <div className="text-xs text-green-400">{stat.change}</div>
+                <div>
+                  <p className="text-sm text-gray-400">{stat.label}</p>
+                  <p className="text-2xl font-bold text-white">{stat.value}</p>
+                </div>
+              </div>
+              {/* Percentage indicator in top right */}
+              <div className="absolute top-3 right-3 flex items-center space-x-1">
+                {stat.isPositive === true && (
+                  <>
+                    <ArrowUp size={12} className="text-green-400" />
+                    <span className="text-xs text-green-400 font-semibold">{stat.change}</span>
+                  </>
+                )}
+                {stat.isPositive === false && (
+                  <>
+                    <ArrowDown size={12} className="text-red-400" />
+                    <span className="text-xs text-red-400 font-semibold">{stat.change}</span>
+                  </>
+                )}
+                {stat.isPositive === null && (
+                  <span className="text-xs text-gray-400 font-semibold">{stat.change}</span>
+                )}
               </div>
             </div>
           )
         })}
       </div>
 
-      {/* Detailed Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Detailed Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {detailedStats.map((stat) => {
           const Icon = stat.icon
           return (
@@ -382,7 +438,6 @@ function DashboardOverview({ stats, onQuickAction, onRefresh }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Quick Actions - Fixed */}
         <div className="card">
           <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
           <div className="space-y-3">
@@ -410,7 +465,6 @@ function DashboardOverview({ stats, onQuickAction, onRefresh }) {
           </div>
         </div>
 
-        {/* Recent Activity */}
         <div className="card">
           <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
           <div className="space-y-3">
@@ -582,25 +636,4 @@ function ActivityLogs({ logs, onExport, onRefresh }) {
       </div>
     </div>
   )
-}
-
-// Wrapper components to inject logging
-function PageManagerWrapper({ logActivity }) {
-  return <PageManager />
-}
-
-function StaffManagerWrapper({ logActivity }) {
-  return <StaffManager />
-}
-
-function MenuManagerWrapper({ logActivity }) {
-  return <MenuManager />
-}
-
-function AdminManagerWrapper({ logActivity }) {
-  return <AdminManager />
-}
-
-function ShadecardManagerWrapper({ logActivity }) {
-  return <ShadecardManager />
 }

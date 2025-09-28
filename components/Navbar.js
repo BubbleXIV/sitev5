@@ -17,6 +17,7 @@ export default function Navbar() {
       .from('pages')
       .select('*')
       .order('sort_order')
+
     setPages(data || [])
   }
 
@@ -40,12 +41,6 @@ export default function Navbar() {
                   {page.title}
                 </Link>
               ))}
-              <Link
-                href="/admin"
-                className="px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10 transition-colors duration-200"
-              >
-                Admin
-              </Link>
             </div>
           </div>
 
@@ -75,13 +70,6 @@ export default function Navbar() {
                 {page.title}
               </Link>
             ))}
-            <Link
-              href="/admin"
-              className="block px-3 py-2 rounded-md text-base font-medium hover:bg-white/10"
-              onClick={() => setIsOpen(false)}
-            >
-              Admin
-            </Link>
           </div>
         </div>
       )}

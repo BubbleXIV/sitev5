@@ -678,7 +678,6 @@ function CategoryManager({ categories, onSaveCategory, onDeleteCategory, onClose
 // Category Form Component
 function CategoryForm({ category, onSave, onCancel }) {
   const [formData, setFormData] = useState({
-    id: category?.id || null,
     name: category?.name || '',
     description: category?.description || '',
     sort_order: category?.sort_order || 0,
@@ -691,7 +690,13 @@ function CategoryForm({ category, onSave, onCancel }) {
       alert('Category name is required')
       return
     }
-    onSave(formData)
+    
+    // Only include id if we're editing an existing category
+    const dataToSave = category?.id 
+      ? { ...formData, id: category.id }
+      : formData
+    
+    onSave(dataToSave)
   }
 
   return (

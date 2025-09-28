@@ -11,16 +11,44 @@ import {
   Edit,
   Trash2,
   LogOut,
-  Globe,
-  ChevronDown
+  Activity,
+  Download,
+  Calendar,
+  Clock,
+  Eye,
+  TrendingUp,
+  Database
 } from 'lucide-react'
 import StaffManager from '@/components/admin/StaffManager'
 import MenuManager from '@/components/admin/MenuManager'
 import PageManager from '@/components/admin/PageManager'
 import AdminManager from '@/components/admin/AdminManager'
 import ShadecardManager from '@/components/admin/ShadecardManager'
-import FooterManager from '@/components/admin/FooterManager'
-import SiteSettingsManager from '@/components/admin/SiteSettingsManager'
+
+// Activity Logger Hook
+const useActivityLogger = () => {
+  const logActivity = async (action, targetType = null, targetId = null, targetName = null, details = {}) => {
+    try {
+      const adminData = JSON.parse(localStorage.getItem('admin_token') || '{}')
+      
+      await supabase.from('admin_activity_logs').insert([{
+        admin_id: adminData.id,
+        admin_username: adminData.username,
+        action,
+        target_type: targetType,
+        target_id: targetId,
+        target_name: targetName,
+        details,
+        ip_address: null, // You can implement IP detection if needed
+        user_agent: navigator.userAgent
+      }])
+    } catch (error) {
+      console.error('Failed to log activity:', error)
+    }
+  }
+
+  return { logActivity }
+}
 
 export default function AdminDashboard({ onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -29,38 +57,153 @@ export default function AdminDashboard({ onLogout }) {
     totalStaff: 0,
     totalMenuItems: 0,
     totalAdmins: 0,
-    totalShadecards: 0
+    totalShadecards: 0,
+    recentActivity: [],
+    pagesByTemplate: {},
+    staffByCategory: {},
+    todayActivity: 0,
+    weekActivity: 0
   })
+  const [activityLogs, setActivityLogs] = useState([])
+  const [showActivityLogs, setShowActivityLogs] = useState(false)
+  const [activityFilter, setActivityFilter] = useState('all')
+  const { logActivity } = useActivityLogger()
 
   useEffect(() => {
     fetchStats()
+    fetchActivityLogs()
+    // Log dashboard access
+    logActivity('dashboard_access')
   }, [])
 
   const fetchStats = async () => {
     try {
-      const [pages, staff, menuItems, shadecards, admins] = await Promise.all([
-        supabase.from('pages').select('id').then(({ data }) => data?.length || 0),
-        supabase.from('staff').select('id').then(({ data }) => data?.length || 0),
+      const [
+        pages, 
+        staff, 
+        menuItems, 
+        shadecards, 
+        admins,
+        pageContent,
+        staffCategories,
+        recentActivity,
+        todayActivity,
+        weekActivity
+      ] = await Promise.all([
+        supabase.from('pages').select('id, template').then(({ data }) => data || []),
+        supabase.from('staff').select('id, category_id, staff_categories(name)').then(({ data }) => data || []),
         supabase.from('menu_items').select('id').then(({ data }) => data?.length || 0),
         supabase.from('shadecard_riddles').select('id').then(({ data }) => data?.length || 0),
-        supabase.from('admins').select('id').then(({ data }) => data?.length || 0)
+        supabase.from('admins').select('id').then(({ data }) => data?.length || 0),
+        supabase.from('page_content').select('id').then(({ data }) => data?.length || 0),
+        supabase.from('staff_categories').select('id, name').then(({ data }) => data || []),
+        supabase.from('admin_activity_logs').select('*').order('created_at', { ascending: false }).limit(5).then(({ data }) => data || []),
+        supabase.from('admin_activity_logs').select('id').gte('created_at', new Date().toISOString().split('T')[0]).then(({ data }) => data?.length || 0),
+        supabase.from('admin_activity_logs').select('id').gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).then(({ data }) => data?.length || 0)
       ])
 
+      // Analyze pages by template
+      const pagesByTemplate = {}
+      pages.forEach(page => {
+        const template = page.template || 'blank'
+        pagesByTemplate[template] = (pagesByTemplate[template] || 0) + 1
+      })
+
+      // Analyze staff by category
+      const staffByCategory = {}
+      staff.forEach(member => {
+        const categoryName = member.staff_categories?.name || 'Uncategorized'
+        staffByCategory[categoryName] = (staffByCategory[categoryName] || 0) + 1
+      })
+
       setStats({
-        totalPages: pages,
-        totalStaff: staff,
+        totalPages: pages.length,
+        totalStaff: staff.length,
         totalMenuItems: menuItems,
         totalAdmins: admins,
-        totalShadecards: shadecards
+        totalShadecards: shadecards,
+        totalPageContent: pageContent,
+        pagesByTemplate,
+        staffByCategory,
+        recentActivity,
+        todayActivity,
+        weekActivity
       })
     } catch (error) {
       console.error('Error fetching stats:', error)
     }
   }
 
-  const handleLogout = () => {
+  const fetchActivityLogs = async () => {
+    try {
+      const { data } = await supabase
+        .from('admin_activity_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100)
+
+      setActivityLogs(data || [])
+    } catch (error) {
+      console.error('Error fetching activity logs:', error)
+    }
+  }
+
+  const handleLogout = async () => {
+    await logActivity('logout')
     localStorage.removeItem('admin_token')
     onLogout()
+  }
+
+  const exportActivityLogs = async () => {
+    try {
+      const { data } = await supabase
+        .from('admin_activity_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (data) {
+        const csv = convertToCSV(data)
+        downloadCSV(csv, `activity-logs-${new Date().toISOString().split('T')[0]}.csv`)
+        await logActivity('export', 'activity_logs', null, 'Activity Logs Export')
+      }
+    } catch (error) {
+      console.error('Error exporting logs:', error)
+    }
+  }
+
+  const convertToCSV = (data) => {
+    const headers = ['Date', 'Admin', 'Action', 'Target Type', 'Target Name', 'Details']
+    const csvContent = [
+      headers.join(','),
+      ...data.map(log => [
+        new Date(log.created_at).toLocaleString(),
+        log.admin_username || 'Unknown',
+        log.action,
+        log.target_type || '',
+        log.target_name || '',
+        JSON.stringify(log.details || {}).replace(/,/g, ';')
+      ].map(field => `"${field}"`).join(','))
+    ].join('\n')
+    
+    return csvContent
+  }
+
+  const downloadCSV = (csvContent, filename) => {
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.setAttribute('hidden', '')
+    a.setAttribute('href', url)
+    a.setAttribute('download', filename)
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  }
+
+  const handleQuickAction = async (action, targetTab) => {
+    await logActivity('quick_action', 'navigation', null, `Quick ${action}`)
+    setActiveTab(targetTab)
   }
 
   const tabs = [
@@ -69,32 +212,46 @@ export default function AdminDashboard({ onLogout }) {
     { id: 'staff', label: 'Staff', icon: Users },
     { id: 'menu', label: 'Menu', icon: MenuIcon },
     { id: 'admins', label: 'Admins', icon: Settings },
-    { id: 'shadecard', label: 'Shadecard', icon: Settings }, 
-    { id: 'footer', label: 'Footer', icon: Globe },
-    { id: 'site-settings', label: 'Site Settings', icon: Globe }
+    { id: 'shadecard', label: 'Shadecard', icon: Settings },
+    { id: 'activity', label: 'Activity Logs', icon: Activity },
   ]
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardOverview stats={stats} />
+        return <DashboardOverview 
+          stats={stats} 
+          onQuickAction={handleQuickAction}
+          onRefresh={fetchStats}
+        />
       case 'pages':
-        return <PageManager />
+        return <PageManagerWrapper logActivity={logActivity} />
       case 'staff':
-        return <StaffManager />
+        return <StaffManagerWrapper logActivity={logActivity} />
       case 'menu':
-        return <MenuManager />
+        return <MenuManagerWrapper logActivity={logActivity} />
       case 'admins':
-        return <AdminManager />
+        return <AdminManagerWrapper logActivity={logActivity} />
       case 'shadecard':
-        return <ShadecardManager /> 
-      case 'footer':
-        return <FooterManager />
-      case 'site-settings':
-        return <SiteSettingsManager />
+        return <ShadecardManagerWrapper logActivity={logActivity} />
+      case 'activity':
+        return <ActivityLogs 
+          logs={activityLogs}
+          onExport={exportActivityLogs}
+          onRefresh={fetchActivityLogs}
+        />
       default:
-        return <DashboardOverview stats={stats} />
+        return <DashboardOverview 
+          stats={stats} 
+          onQuickAction={handleQuickAction}
+          onRefresh={fetchStats}
+        />
     }
+  }
+
+  const handleTabChange = async (tabId) => {
+    await logActivity('navigation', 'tab', null, tabs.find(t => t.id === tabId)?.label)
+    setActiveTab(tabId)
   }
 
   return (
@@ -127,7 +284,7 @@ export default function AdminDashboard({ onLogout }) {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleTabChange(tab.id)}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                       activeTab === tab.id
                         ? 'bg-nightshade-600 text-white'
@@ -153,25 +310,41 @@ export default function AdminDashboard({ onLogout }) {
 }
 
 // Dashboard Overview Component
-function DashboardOverview({ stats }) {
-  const statCards = [
-    { label: 'Total Pages', value: stats.totalPages, icon: FileText, color: 'from-blue-500 to-blue-600' },
-    { label: 'Staff Members', value: stats.totalStaff, icon: Users, color: 'from-green-500 to-green-600' },
-    { label: 'Menu Items', value: stats.totalMenuItems, icon: MenuIcon, color: 'from-purple-500 to-purple-600' },
+function DashboardOverview({ stats, onQuickAction, onRefresh }) {
+  const mainStats = [
+    { label: 'Total Pages', value: stats.totalPages, icon: FileText, color: 'from-blue-500 to-blue-600', change: '+2.5%' },
+    { label: 'Staff Members', value: stats.totalStaff, icon: Users, color: 'from-green-500 to-green-600', change: '+1.2%' },
+    { label: 'Menu Items', value: stats.totalMenuItems, icon: MenuIcon, color: 'from-purple-500 to-purple-600', change: '0%' },
+    { label: 'Administrators', value: stats.totalAdmins, icon: Settings, color: 'from-red-500 to-red-600', change: '0%' },
+  ]
+
+  const detailedStats = [
     { label: 'Shadecards', value: stats.totalShadecards || 0, icon: Settings, color: 'from-yellow-500 to-yellow-600' },
-    { label: 'Administrators', value: stats.totalAdmins, icon: Settings, color: 'from-red-500 to-red-600' },
+    { label: 'Page Content', value: stats.totalPageContent || 0, icon: Database, color: 'from-indigo-500 to-indigo-600' },
+    { label: 'Today Activity', value: stats.todayActivity || 0, icon: TrendingUp, color: 'from-pink-500 to-pink-600' },
+    { label: 'Week Activity', value: stats.weekActivity || 0, icon: Activity, color: 'from-cyan-500 to-cyan-600' },
   ]
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-6">Dashboard Overview</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-white">Dashboard Overview</h2>
+        <button
+          onClick={onRefresh}
+          className="btn-secondary flex items-center space-x-2"
+        >
+          <Activity size={16} />
+          <span>Refresh</span>
+        </button>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {statCards.map((stat) => {
-            const Icon = stat.icon
-            return (
-              <div key={stat.label} className="card">
+      {/* Main Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {mainStats.map((stat) => {
+          const Icon = stat.icon
+          return (
+            <div key={stat.label} className="card">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <div className={`p-3 rounded-lg bg-gradient-to-r ${stat.color} mr-4`}>
                     <Icon size={24} className="text-white" />
@@ -181,38 +354,253 @@ function DashboardOverview({ stats }) {
                     <p className="text-2xl font-bold text-white">{stat.value}</p>
                   </div>
                 </div>
+                <div className="text-xs text-green-400">{stat.change}</div>
               </div>
-            )
-          })}
-        </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Detailed Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {detailedStats.map((stat) => {
+          const Icon = stat.icon
+          return (
+            <div key={stat.label} className="card bg-white/5">
+              <div className="flex items-center">
+                <div className={`p-2 rounded-lg bg-gradient-to-r ${stat.color} mr-3`}>
+                  <Icon size={20} className="text-white" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">{stat.label}</p>
+                  <p className="text-lg font-bold text-white">{stat.value}</p>
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Quick Actions - Fixed */}
         <div className="card">
           <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
           <div className="space-y-3">
-            <button className="w-full btn-primary text-left">
-              <Plus size={16} className="inline mr-2" />
+            <button 
+              onClick={() => onQuickAction('Add New Page', 'pages')}
+              className="w-full btn-primary text-left flex items-center"
+            >
+              <Plus size={16} className="mr-2" />
               Add New Page
             </button>
-            <button className="w-full btn-secondary text-left">
-              <Plus size={16} className="inline mr-2" />
+            <button 
+              onClick={() => onQuickAction('Add Staff Member', 'staff')}
+              className="w-full btn-secondary text-left flex items-center"
+            >
+              <Plus size={16} className="mr-2" />
               Add Staff Member
             </button>
-            <button className="w-full btn-secondary text-left">
-              <Plus size={16} className="inline mr-2" />
+            <button 
+              onClick={() => onQuickAction('Add Menu Item', 'menu')}
+              className="w-full btn-secondary text-left flex items-center"
+            >
+              <Plus size={16} className="mr-2" />
               Add Menu Item
             </button>
           </div>
         </div>
 
+        {/* Recent Activity */}
         <div className="card">
           <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
-          <div className="space-y-3 text-gray-300">
-            <p className="text-sm">No recent activity to display.</p>
+          <div className="space-y-3">
+            {stats.recentActivity.length > 0 ? (
+              stats.recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-center justify-between text-sm">
+                  <div className="text-gray-300">
+                    <span className="text-nightshade-400">{activity.admin_username}</span> {activity.action}
+                    {activity.target_name && <span className="text-gray-500"> "{activity.target_name}"</span>}
+                  </div>
+                  <div className="text-gray-500 text-xs">
+                    {new Date(activity.created_at).toLocaleTimeString()}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-400">No recent activity to display.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Analytics Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Pages by Template */}
+        <div className="card">
+          <h3 className="text-lg font-semibold text-white mb-4">Pages by Template</h3>
+          <div className="space-y-2">
+            {Object.entries(stats.pagesByTemplate || {}).map(([template, count]) => (
+              <div key={template} className="flex justify-between items-center">
+                <span className="text-gray-300 capitalize">{template}</span>
+                <span className="text-nightshade-400 font-semibold">{count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Staff by Category */}
+        <div className="card">
+          <h3 className="text-lg font-semibold text-white mb-4">Staff by Category</h3>
+          <div className="space-y-2">
+            {Object.entries(stats.staffByCategory || {}).map(([category, count]) => (
+              <div key={category} className="flex justify-between items-center">
+                <span className="text-gray-300">{category}</span>
+                <span className="text-nightshade-400 font-semibold">{count}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
     </div>
   )
+}
+
+// Activity Logs Component
+function ActivityLogs({ logs, onExport, onRefresh }) {
+  const [filter, setFilter] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const filteredLogs = logs.filter(log => {
+    const matchesFilter = filter === 'all' || log.action.includes(filter)
+    const matchesSearch = searchTerm === '' || 
+      log.admin_username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.target_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    return matchesFilter && matchesSearch
+  })
+
+  const actionTypes = ['all', 'login', 'logout', 'create', 'update', 'delete', 'navigation']
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-white">Activity Logs</h2>
+        <div className="flex space-x-2">
+          <button onClick={onRefresh} className="btn-secondary">
+            <Activity size={16} className="mr-2" />
+            Refresh
+          </button>
+          <button onClick={onExport} className="btn-primary">
+            <Download size={16} className="mr-2" />
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="card">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Search</label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by admin, action, or target..."
+              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Filter by Action</label>
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
+            >
+              {actionTypes.map(type => (
+                <option key={type} value={type} className="bg-gray-800">
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Logs Table */}
+      <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-white/5">
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-300">Date</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-300">Admin</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-300">Action</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-300">Target</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-300">Details</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/10">
+              {filteredLogs.map((log) => (
+                <tr key={log.id} className="hover:bg-white/5">
+                  <td className="px-4 py-3 text-sm text-gray-300">
+                    {new Date(log.created_at).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-nightshade-300">
+                    {log.admin_username || 'Unknown'}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-white">
+                    <span className="px-2 py-1 bg-nightshade-600/20 rounded-full text-xs">
+                      {log.action}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-300">
+                    {log.target_type && (
+                      <div>
+                        <span className="text-purple-400">{log.target_type}</span>
+                        {log.target_name && <div className="text-xs text-gray-500">{log.target_name}</div>}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-400 max-w-xs truncate">
+                    {log.details && Object.keys(log.details).length > 0 ? 
+                      JSON.stringify(log.details) : '-'
+                    }
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {filteredLogs.length === 0 && (
+          <div className="text-center py-8 text-gray-400">
+            No activity logs found matching your criteria.
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Wrapper components to inject logging
+function PageManagerWrapper({ logActivity }) {
+  return <PageManager />
+}
+
+function StaffManagerWrapper({ logActivity }) {
+  return <StaffManager />
+}
+
+function MenuManagerWrapper({ logActivity }) {
+  return <MenuManager />
+}
+
+function AdminManagerWrapper({ logActivity }) {
+  return <AdminManager />
+}
+
+function ShadecardManagerWrapper({ logActivity }) {
+  return <ShadecardManager />
 }

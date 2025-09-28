@@ -418,10 +418,12 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
           return (
             <div
               key={`floating-${element.id}`}
-              className={`absolute cursor-move group z-40 ${
+              className={`absolute group z-40 ${
+                isEditable ? 'cursor-move' : 'cursor-default'
+              } ${
                 isDraggingFloating && draggedFloatingElement?.id === element.id ? 'opacity-75' : ''
               } ${
-                isSelected ? 'ring-2 ring-blue-400' : 'hover:ring-1 hover:ring-blue-300'
+                isSelected ? 'ring-2 ring-blue-400' : (isEditable ? 'hover:ring-1 hover:ring-blue-300' : '')
               }`}
               style={{
                 left: `${element.props.position.x}px`,
@@ -429,41 +431,43 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
                 width: `${element.props.width || 200}px`,
                 height: `${element.props.height || 60}px`
               }}
-              onMouseDown={(e) => handleFloatingMouseDown(e, element)}
-              onClick={(e) => {
+              onMouseDown={isEditable ? (e) => handleFloatingMouseDown(e, element) : undefined}
+              onClick={isEditable ? (e) => {
                 e.stopPropagation()
                 setSelectedElement(element)
-              }}
+              } : undefined}
             >
               {/* Floating element controls */}
-              <div className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity z-50">
-                <div className="flex space-x-1 bg-black/90 rounded px-2 py-1 text-xs">
-                  <span className="text-gray-300">{element.type}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedElement(element)
-                    }}
-                    className="text-blue-400 hover:text-blue-300 px-1"
-                    title="Edit"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      removeElement(element.id)
-                    }}
-                    className="text-red-400 hover:text-red-300 px-1"
-                    title="Delete"
-                  >
-                    ×
-                  </button>
+              {isEditable && (
+                <div className="absolute -top-8 left-0 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                  <div className="flex space-x-1 bg-black/90 rounded px-2 py-1 text-xs">
+                    <span className="text-gray-300">{element.type}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedElement(element)
+                      }}
+                      className="text-blue-400 hover:text-blue-300 px-1"
+                      title="Edit"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        removeElement(element.id)
+                      }}
+                      className="text-red-400 hover:text-red-300 px-1"
+                      title="Delete"
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Resize handles */}
-              {isSelected && (
+              {isSelected && isEditable && (
                 <>
                   <div 
                     className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 cursor-se-resize z-50"
@@ -488,10 +492,6 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
             </div>
           )
         })}
-      </div>
-    </div>
-  )
-}
 
 // Element Toolbar Component
 function ElementToolbar({ onAddElement }) {

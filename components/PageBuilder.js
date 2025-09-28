@@ -486,7 +486,7 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
 
               <Component
                 {...element.props}
-                isEditing={true}
+                isEditing={isEditable}
                 onUpdate={(newProps) => updateElement(element.id, newProps)}
               />
             </div>

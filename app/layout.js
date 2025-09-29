@@ -18,9 +18,14 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-gradient-to-br from-gray-900 via-nightshade-900 to-gray-900 min-h-screen text-white`}>
+      <body className={`${inter.className} min-h-screen`} style={{ 
+        background: 'linear-gradient(to bottom right, var(--bg-gradient-from), var(--bg-gradient-via), var(--bg-gradient-to))',
+        color: 'var(--text-primary)'
+      }}>
         <ThemeProvider>
-          <div className="fixed inset-0 bg-gradient-to-br from-nightshade-900/20 via-purple-900/10 to-gray-900/30 animate-gradient"></div>
+          <div className="fixed inset-0 animate-gradient" style={{ 
+            background: 'linear-gradient(to bottom right, color-mix(in srgb, var(--bg-gradient-via) 20%, transparent), color-mix(in srgb, var(--color-secondary) 10%, transparent), color-mix(in srgb, var(--bg-gradient-to) 30%, transparent))'
+          }}></div>
           <div className="relative z-10">
             <Navbar />
             {children}

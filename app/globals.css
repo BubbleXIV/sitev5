@@ -91,3 +91,30 @@
     display: none !important;
   }
 }
+
+/* Dark dropdown styling */
+select {
+  @apply bg-gray-800 text-white border border-gray-600 rounded px-3 py-2;
+}
+
+select option {
+  @apply bg-gray-800 text-white;
+}
+
+/* Input styling for consistency */
+input[type="text"], 
+input[type="email"], 
+input[type="url"], 
+input[type="number"],
+textarea {
+  @apply bg-gray-800 text-white border border-gray-600 rounded px-3 py-2;
+}
+
+input[type="text"]:focus, 
+input[type="email"]:focus, 
+input[type="url"]:focus, 
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  @apply border-nightshade-500 outline-none ring-1 ring-nightshade-500;
+}

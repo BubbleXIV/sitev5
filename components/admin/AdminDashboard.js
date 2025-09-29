@@ -30,6 +30,7 @@ import AdminManager from '@/components/admin/AdminManager'
 import ShadecardManager from '@/components/admin/ShadecardManager'
 import FooterManager from '@/components/admin/FooterManager'
 import SiteSettingsManager from '@/components/admin/SiteSettingsManager'
+import ThemeEditor from '@/components/admin/ThemeEditor'
 
 // Activity Logger Hook
 const useActivityLogger = () => {
@@ -225,6 +226,7 @@ export default function AdminDashboard({ onLogout }) {
     { id: 'pages', label: 'Pages', icon: FileText },
     { id: 'staff', label: 'Staff', icon: Users },
     { id: 'menu', label: 'Menu', icon: MenuIcon },
+    { id: 'theme', label: 'Theme', icon: Settings },
     { id: 'admins', label: 'Admins', icon: Settings },
     { id: 'shadecard', label: 'Shadecard', icon: Settings }, 
     { id: 'footer', label: 'Footer', icon: Globe },
@@ -242,6 +244,8 @@ export default function AdminDashboard({ onLogout }) {
         return <StaffManager />
       case 'menu':
         return <MenuManager />
+      case 'theme':
+        return <ThemeEditor /> 
       case 'admins':
         return <AdminManager />
       case 'shadecard':

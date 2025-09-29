@@ -17,6 +17,7 @@ import VideoSection from '@/components/builder/VideoSection'
 import SpacerSection from '@/components/builder/SpacerSection'
 import DividerSection from '@/components/builder/DividerSection'
 import TestimonialSection from '@/components/builder/TestimonialSection'
+import CustomHTMLSection from '@/components/builder/CustomHTMLSection'
 
 // Import template components
 import EventTemplate from '@/components/templates/EventTemplate'
@@ -37,6 +38,7 @@ const componentMap = {
   backgroundImage: BackgroundImageSection,
   floatingText: FloatingTextSection,
   floatingButton: FloatingButtonSection,
+  customHTML: CustomHTMLSection, 
 }
 
 const templateMap = {
@@ -323,6 +325,12 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
         size: 'medium',
         position: { x: 50, y: 50 },
         animation: 'fade-in'
+      },
+      customHTML: {
+        html: '<div class="text-center py-16"><h1 class="text-4xl">Custom HTML Content</h1></div>',
+        css: '',
+        javascript: '',
+        animation: 'fade-in'
       }
     }
     return defaults[type] || {}
@@ -544,42 +552,53 @@ function ElementToolbar({ onAddElement }) {
     floating: [
       { type: 'floatingText', label: 'Floating Text', icon: '💭' },
       { type: 'floatingButton', label: 'Floating Button', icon: '🎈' },
+    ],
+    advanced: [
+      { type: 'customHTML', label: 'Custom HTML', icon: '💻' },
     ]
   }
 
-  const categories = Object.keys(elements)
+  const categories = [
+    { id: 'layout', label: 'Layout', icon: '📐' },
+    { id: 'content', label: 'Content', icon: '📄' },
+    { id: 'media', label: 'Media', icon: '🎬' },
+    { id: 'interactive', label: 'Interactive', icon: '🎮' },
+    { id: 'floating', label: 'Floating', icon: '🎈' },
+    { id: 'advanced', label: 'Advanced', icon: '⚙️' },
+  ]
 
   return (
-    <div className="space-y-4">
+    <div>
+      <h3 className="text-sm font-bold text-gray-300 mb-3">Add Elements</h3>
+      
       {/* Category Tabs */}
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1 mb-3">
         {categories.map((category) => (
           <button
-            key={category}
-            onClick={() => setActiveCategory(category)}
-            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-              activeCategory === category
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            key={category.id}
+            onClick={() => setActiveCategory(category.id)}
+            className={`px-2 py-1 text-xs rounded transition-colors ${
+              activeCategory === category.id
+                ? 'bg-nightshade-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
             }`}
           >
-            {category.charAt(0).toUpperCase() + category.slice(1)}
+            <span className="mr-1">{category.icon}</span>
+            {category.label}
           </button>
         ))}
       </div>
 
       {/* Elements Grid */}
-      <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
+      <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
         {elements[activeCategory]?.map((element) => (
           <button
             key={element.type}
             onClick={() => onAddElement(element.type)}
-            className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-left transition-colors group flex items-center space-x-2"
+            className="flex items-center space-x-2 p-2 bg-gray-800 hover:bg-gray-700 rounded transition-colors text-left text-sm"
           >
             <span className="text-lg">{element.icon}</span>
-            <span className="text-sm font-medium text-white group-hover:text-blue-300">
-              {element.label}
-            </span>
+            <span className="text-gray-200">{element.label}</span>
           </button>
         ))}
       </div>

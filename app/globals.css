@@ -84,3 +84,10 @@
   animation: glitch-vertical-reverse 3.5s infinite;
   animation-delay: 1.5s;
 }
+
+/* Hide floating elements on mobile */
+@media (max-width: 768px) {
+  div[class*="absolute"][class*="z-40"] {
+    display: none !important;
+  }
+}

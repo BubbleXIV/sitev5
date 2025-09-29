@@ -45,6 +45,31 @@ const templateMap = {
   affiliate: AffiliateTemplate,
 }
 
+// Add this function to your PageBuilder component
+const getResponsiveFloatingStyle = (element) => {
+  const baseStyle = {
+    left: `${element.props.position.x}px`,
+    top: `${element.props.position.y}px`,
+    width: `${element.props.width || 200}px`,
+    height: `${element.props.height || 60}px`
+  }
+  
+  // For mobile screens, adjust positioning and sizing
+  if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+    const maxWidth = window.innerWidth * 0.9
+    const adjustedX = Math.min(element.props.position.x, window.innerWidth - Math.min(element.props.width || 200, maxWidth))
+    
+    return {
+      ...baseStyle,
+      left: `${Math.max(0, adjustedX)}px`,
+      width: `${Math.min(element.props.width || 200, maxWidth)}px`,
+      maxWidth: '90vw'
+    }
+  }
+  
+  return baseStyle
+}
+
 export default function PageBuilder({ content, isEditable = false, onSave, template }) {
   const [elements, setElements] = useState(content?.elements || [])
   const [selectedElement, setSelectedElement] = useState(null)
@@ -425,12 +450,7 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
               } ${
                 isSelected ? 'ring-2 ring-blue-400' : (isEditable ? 'hover:ring-1 hover:ring-blue-300' : '')
               }`}
-              style={{
-                left: `${element.props.position.x}px`,
-                top: `${element.props.position.y}px`,
-                width: `${element.props.width || 200}px`,
-                height: `${element.props.height || 60}px`
-              }}
+              style={getResponsiveFloatingStyle(element)}
               onMouseDown={isEditable ? (e) => handleFloatingMouseDown(e, element) : undefined}
               onClick={isEditable ? (e) => {
                 e.stopPropagation()

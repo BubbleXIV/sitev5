@@ -1,4 +1,3 @@
-// Create this file: components/ThemeProvider.js
 'use client'
 import { useEffect } from 'react'
 import { supabase } from '@/lib/supabase'

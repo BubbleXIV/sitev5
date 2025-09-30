@@ -99,8 +99,8 @@ export default function HeroSection({
                   <label className="block text-xs mb-1 text-gray-300">Button 1 Text</label>
                   <input
                     type="text"
-                    value={button1Text || ''}
-                    onChange={(e) => onUpdate({ button1Text: e.target.value })}
+                    defaultValue={button1Text || ''}
+                    onBlur={(e) => onUpdate({ button1Text: e.target.value })}
                     className="w-full text-sm"
                     placeholder="View Events"
                   />
@@ -109,8 +109,8 @@ export default function HeroSection({
                   <label className="block text-xs mb-1 text-gray-300">Button 1 Link</label>
                   <input
                     type="text"
-                    value={button1Link || ''}
-                    onChange={(e) => onUpdate({ button1Link: e.target.value })}
+                    defaultValue={button1Link || ''}
+                    onBlur={(e) => onUpdate({ button1Link: e.target.value })}
                     className="w-full text-sm"
                     placeholder="/events"
                   />
@@ -119,8 +119,8 @@ export default function HeroSection({
                   <label className="block text-xs mb-1 text-gray-300">Button 2 Text</label>
                   <input
                     type="text"
-                    value={button2Text || ''}
-                    onChange={(e) => onUpdate({ button2Text: e.target.value })}
+                    defaultValue={button2Text || ''}
+                    onBlur={(e) => onUpdate({ button2Text: e.target.value })}
                     className="w-full text-sm"
                     placeholder="Contact Us"
                   />
@@ -129,8 +129,8 @@ export default function HeroSection({
                   <label className="block text-xs mb-1 text-gray-300">Button 2 Link</label>
                   <input
                     type="text"
-                    value={button2Link || ''}
-                    onChange={(e) => onUpdate({ button2Link: e.target.value })}
+                    defaultValue={button2Link || ''}
+                    onBlur={(e) => onUpdate({ button2Link: e.target.value })}
                     className="w-full text-sm"
                     placeholder="/contact"
                   />
@@ -140,7 +140,7 @@ export default function HeroSection({
           </div>
         ) : (
           <div className="space-y-6">
-            <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-nightshade-400 to-purple-400 bg-clip-text text-transparent animate-glow">
+            <h1 className="text-5xl md:text-7xl font-bold text-white drop-shadow-[0_0_15px_rgba(168,85,247,0.5)] leading-tight pb-2">
               {title}
             </h1>
             <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto">

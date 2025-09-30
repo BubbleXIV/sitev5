@@ -18,6 +18,9 @@ import SpacerSection from '@/components/builder/SpacerSection'
 import DividerSection from '@/components/builder/DividerSection'
 import TestimonialSection from '@/components/builder/TestimonialSection'
 import CustomHTMLSection from '@/components/builder/CustomHTMLSection'
+import CardSection from '@/components/builder/CardSection'
+import HighlightSection from '@/components/builder/HighlightSection'
+import OpeningSection from '@/components/builder/OpeningSection'
 
 // Import template components
 import EventTemplate from '@/components/templates/EventTemplate'
@@ -38,7 +41,10 @@ const componentMap = {
   backgroundImage: BackgroundImageSection,
   floatingText: FloatingTextSection,
   floatingButton: FloatingButtonSection,
-  customHTML: CustomHTMLSection, 
+  customHTML: CustomHTMLSection,
+  cardSection: CardSection,
+  highlightSection: HighlightSection,
+  openingSection: OpeningSection,
 }
 
 const templateMap = {
@@ -331,6 +337,24 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
         css: '',
         javascript: '',
         animation: 'fade-in'
+      },
+      cardSection: {
+        header: 'Section Header',
+        subtext: 'Description',
+        animation: 'fade-in'
+      },
+      highlightSection: {
+        header: 'Featured Event',
+        subtext: 'Description',
+        animation: 'fade-in'
+      },
+      openingSection: {
+        header: 'Venue Opening',
+        subtext: 'Join us',
+        eventDate: '',
+        eventTime: '',
+        location: '',
+        animation: 'fade-in'
       }
     }
     return defaults[type] || {}
@@ -539,6 +563,9 @@ function ElementToolbar({ onAddElement }) {
     content: [
       { type: 'text', label: 'Text Block', icon: '📝' },
       { type: 'testimonial', label: 'Testimonial', icon: '💬' },
+      { type: 'cardSection', label: 'Card Section', icon: '🎴' },
+      { type: 'highlightSection', label: 'Highlight Section', icon: '⭐' },
+      { type: 'openingSection', label: 'Opening Section', icon: '🎉' },
     ],
     media: [
       { type: 'image', label: 'Image', icon: '🖼️' },

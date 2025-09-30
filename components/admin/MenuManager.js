@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Edit, Trash2, ChefHat } from 'lucide-react'
+import { Plus, Edit, Trash2, ChefHat, Eye, EyeOff } from 'lucide-react'
 import ImageUpload from '@/components/ImageUpload'
 
 export default function MenuManager() {
@@ -11,6 +11,7 @@ export default function MenuManager() {
   const [currentCategory, setCurrentCategory] = useState(null)
   const [currentItem, setCurrentItem] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [showHidden, setShowHidden] = useState(false)
 
   useEffect(() => {
     fetchCategories()
@@ -37,6 +38,23 @@ export default function MenuManager() {
       alert('Error loading menu data: ' + error.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleToggleItemVisibility = async (item) => {
+    try {
+      const { error } = await supabase
+        .from('menu_items')
+        .update({ is_hidden: !item.is_hidden })
+        .eq('id', item.id)
+
+      if (error) throw error
+      
+      await fetchCategories()
+      alert(`Item ${item.is_hidden ? 'shown' : 'hidden'} successfully!`)
+    } catch (error) {
+      console.error('Error toggling item visibility:', error)
+      alert('Error updating item visibility: ' + error.message)
     }
   }
 
@@ -77,7 +95,6 @@ export default function MenuManager() {
     try {
       console.log('Saving item:', itemData)
       
-      // Ensure required fields
       if (!itemData.name || !itemData.category_id) {
         alert('Name and Category are required')
         return
@@ -86,7 +103,8 @@ export default function MenuManager() {
       const dataToSave = {
         ...itemData,
         price_gil: itemData.price_gil ? parseInt(itemData.price_gil) : null,
-        sort_order: itemData.sort_order || 0
+        sort_order: itemData.sort_order || 0,
+        is_hidden: itemData.is_hidden || false
       }
 
       if (currentItem?.id) {
@@ -158,11 +176,30 @@ export default function MenuManager() {
     return <div className="text-center py-8">Loading menu...</div>
   }
 
+  const visibleItems = categories.flatMap(cat => 
+    cat.menu_items?.filter(item => !item.is_hidden) || []
+  )
+  const hiddenItems = categories.flatMap(cat => 
+    cat.menu_items?.filter(item => item.is_hidden) || []
+  )
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-white">Menu Management</h2>
+        <div>
+          <h2 className="text-2xl font-bold text-white">Menu Management</h2>
+          <p className="text-sm text-gray-400 mt-1">
+            {visibleItems.length} visible items, {hiddenItems.length} hidden items
+          </p>
+        </div>
         <div className="flex space-x-2">
+          <button
+            onClick={() => setShowHidden(!showHidden)}
+            className="btn-secondary flex items-center space-x-2"
+          >
+            {showHidden ? <Eye size={20} /> : <EyeOff size={20} />}
+            <span>{showHidden ? 'Show Active' : 'Show Hidden'}</span>
+          </button>
           <button
             onClick={() => {
               setCurrentCategory(null)
@@ -209,87 +246,167 @@ export default function MenuManager() {
         />
       )}
 
-      {categories.map((category) => (
-        <div key={category.id} className="card">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-nightshade-300">{category.name}</h3>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => {
-                  setCurrentCategory(category)
-                  setIsEditingCategory(true)
-                }}
-                className="btn-secondary text-sm"
-              >
-                <Edit size={16} />
-              </button>
-              <button
-                onClick={() => handleDeleteCategory(category.id)}
-                className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded transition-colors"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {category.menu_items?.map((item) => (
-              <div key={item.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
-                {item.image_url && (
-                  <img
-                    src={item.image_url}
-                    alt={item.name}
-                    className="w-full h-32 object-cover rounded mb-3"
-                  />
-                )}
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-semibold text-white">{item.name}</h4>
-                  {item.price_gil && (
-                    <span className="text-purple-400 font-bold">
-                      {item.price_gil.toLocaleString()} gil
-                    </span>
+      {showHidden ? (
+        /* Hidden Items Section */
+        <div className="card">
+          <h3 className="text-xl font-bold text-orange-400 mb-4">Hidden Items</h3>
+          <p className="text-sm text-gray-400 mb-4">
+            These items are hidden from the public menu but can be restored anytime.
+          </p>
+          
+          {hiddenItems.length === 0 ? (
+            <p className="text-gray-400 text-center py-8">No hidden items</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {hiddenItems.map((item) => (
+                <div key={item.id} className="bg-orange-900/20 rounded-lg p-4 border border-orange-500/30">
+                  {item.image_url && (
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="w-full h-32 object-cover rounded mb-3 opacity-60"
+                    />
                   )}
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-semibold text-white">{item.name}</h4>
+                    {item.price_gil && (
+                      <span className="text-purple-400 font-bold">
+                        {item.price_gil.toLocaleString()} gil
+                      </span>
+                    )}
+                  </div>
+                  {item.description && (
+                    <p className="text-gray-300 text-sm mb-3">{item.description}</p>
+                  )}
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleToggleItemVisibility(item)}
+                      className="flex-1 btn-primary text-xs flex items-center justify-center space-x-1"
+                      title="Show item on menu"
+                    >
+                      <Eye size={14} />
+                      <span>Show</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCurrentItem(item)
+                        setIsEditingItem(true)
+                      }}
+                      className="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 rounded text-xs"
+                      title="Edit item"
+                    >
+                      <Edit size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
+                      title="Delete permanently"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
-                {item.description && (
-                  <p className="text-gray-300 text-sm mb-3">{item.description}</p>
-                )}
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => {
-                      setCurrentItem(item)
-                      setIsEditingItem(true)
-                    }}
-                    className="flex-1 btn-secondary text-xs"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteItem(item.id)}
-                    className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {(!category.menu_items || category.menu_items.length === 0) && (
-            <p className="text-gray-400 text-center py-8">No items in this category</p>
+              ))}
+            </div>
           )}
         </div>
-      ))}
+      ) : (
+        /* Active Items by Category */
+        <>
+          {categories.map((category) => {
+            const activeItems = category.menu_items?.filter(item => !item.is_hidden) || []
+            
+            return (
+              <div key={category.id} className="card">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-bold text-nightshade-300">{category.name}</h3>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => {
+                        setCurrentCategory(category)
+                        setIsEditingCategory(true)
+                      }}
+                      className="btn-secondary text-sm"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCategory(category.id)}
+                      className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
 
-      {categories.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-400 mb-4">No menu categories found.</p>
-          <button
-            onClick={() => setIsEditingCategory(true)}
-            className="btn-primary"
-          >
-            Create Your First Category
-          </button>
-        </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {activeItems.map((item) => (
+                    <div key={item.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
+                      {item.image_url && (
+                        <img
+                          src={item.image_url}
+                          alt={item.name}
+                          className="w-full h-32 object-cover rounded mb-3"
+                        />
+                      )}
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-semibold text-white">{item.name}</h4>
+                        {item.price_gil && (
+                          <span className="text-purple-400 font-bold">
+                            {item.price_gil.toLocaleString()} gil
+                          </span>
+                        )}
+                      </div>
+                      {item.description && (
+                        <p className="text-gray-300 text-sm mb-3">{item.description}</p>
+                      )}
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleToggleItemVisibility(item)}
+                          className="px-2 py-1 bg-orange-600 hover:bg-orange-700 rounded text-xs"
+                          title="Hide from menu"
+                        >
+                          <EyeOff size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setCurrentItem(item)
+                            setIsEditingItem(true)
+                          }}
+                          className="flex-1 btn-secondary text-xs"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteItem(item.id)}
+                          className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {activeItems.length === 0 && (
+                  <p className="text-gray-400 text-center py-8">No visible items in this category</p>
+                )}
+              </div>
+            )
+          })}
+
+          {categories.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-400 mb-4">No menu categories found.</p>
+              <button
+                onClick={() => setIsEditingCategory(true)}
+                className="btn-primary"
+              >
+                Create Your First Category
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
@@ -371,6 +488,7 @@ function ItemForm({ item, categories, onSave, onCancel }) {
     price_gil: item?.price_gil || '',
     image_url: item?.image_url || '',
     sort_order: item?.sort_order || 0,
+    is_hidden: item?.is_hidden || false,
   })
 
   const handleSubmit = (e) => {
@@ -480,6 +598,19 @@ function ItemForm({ item, categories, onSave, onCancel }) {
             className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white"
             min="0"
           />
+        </div>
+
+        <div className="flex items-center space-x-3 p-3 bg-orange-900/20 border border-orange-500/30 rounded">
+          <input
+            type="checkbox"
+            id="is_hidden"
+            checked={formData.is_hidden}
+            onChange={(e) => setFormData(prev => ({ ...prev, is_hidden: e.target.checked }))}
+            className="w-4 h-4"
+          />
+          <label htmlFor="is_hidden" className="text-sm text-gray-300">
+            Hide this item from the public menu
+          </label>
         </div>
 
         <div className="flex space-x-4">

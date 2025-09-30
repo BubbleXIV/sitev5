@@ -327,23 +327,23 @@ export default function PageManager() {
                 </div>
               )}
 
-              <div className="flex space-x-2">
+<div className="flex flex-wrap gap-2">
                 <Link
                   href={`/${page.slug}`}
                   target="_blank"
-                  className="flex-1 btn-secondary flex items-center justify-center space-x-1"
+                  className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                  title="View Page"
                 >
                   <Eye size={16} />
-                  <span>View</span>
                 </Link>
 
                 {!page.is_staff_page && !page.is_menu_page && (
                   <button
                     onClick={() => loadPageContent(page)}
-                    className="flex-1 btn-primary flex items-center justify-center space-x-1"
+                    className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+                    title="Edit Content"
                   >
                     <Edit size={16} />
-                    <span>Edit</span>
                   </button>
                 )}
 
@@ -353,13 +353,15 @@ export default function PageManager() {
                     setIsEditing(true)
                   }}
                   className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors"
+                  title="Edit Settings"
                 >
-                  <Edit size={16} />
+                  <FileText size={16} />
                 </button>
 
                 <button
                   onClick={() => handleDeletePage(page.id)}
                   className="px-3 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                  title="Delete Page"
                 >
                   <Trash2 size={16} />
                 </button>

@@ -1,6 +1,7 @@
 import '@/app/globals.css'
 import { Inter } from 'next/font/google'
 import ThemeProvider from '@/components/ThemeProvider'
+import SiteFooter from '@/components/SiteFooter'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -25,8 +26,11 @@ export default function PreviewLayout({ children }) {
           <div className="fixed inset-0 animate-gradient" style={{ 
             background: 'linear-gradient(to bottom right, color-mix(in srgb, var(--bg-gradient-via) 20%, transparent), color-mix(in srgb, var(--color-secondary) 10%, transparent), color-mix(in srgb, var(--bg-gradient-to) 30%, transparent))'
           }}></div>
-          <div className="relative z-10">
-            {children}
+          <div className="relative z-10 min-h-screen flex flex-col">
+            <div className="flex-1">
+              {children}
+            </div>
+            <SiteFooter />
           </div>
         </ThemeProvider>
       </body>

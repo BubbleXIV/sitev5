@@ -59,9 +59,32 @@ export default function TextSection({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {isEditing ? (
           <div className="space-y-4">
+            {/* Text Alignment Control */}
+            <div className="flex gap-2 mb-2">
+              <button
+                onClick={() => onUpdate({ textAlign: 'left' })}
+                className={`px-3 py-1 text-sm rounded ${textAlign === 'left' ? 'bg-nightshade-600' : 'bg-gray-700'}`}
+              >
+                Left
+              </button>
+              <button
+                onClick={() => onUpdate({ textAlign: 'center' })}
+                className={`px-3 py-1 text-sm rounded ${textAlign === 'center' ? 'bg-nightshade-600' : 'bg-gray-700'}`}
+              >
+                Center
+              </button>
+              <button
+                onClick={() => onUpdate({ textAlign: 'right' })}
+                className={`px-3 py-1 text-sm rounded ${textAlign === 'right' ? 'bg-nightshade-600' : 'bg-gray-700'}`}
+              >
+                Right
+              </button>
+            </div>
+
             <textarea
-              value={content}
-              onChange={(e) => onUpdate({ content: e.target.value })}
+              key={`textarea-${content.substring(0, 20)}`}
+              defaultValue={content}
+              onBlur={(e) => onUpdate({ content: e.target.value })}
               className={`w-full ${fontSize} text-${textAlign} bg-transparent border-2 border-dashed border-white/50 p-4 text-white min-h-32 resize-none`}
               placeholder="Enter your text here..."
             />

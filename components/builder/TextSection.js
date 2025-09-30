@@ -72,42 +72,140 @@ export default function TextSection({
               <p className="text-xs text-gray-400 mb-4">Leave empty to hide buttons</p>
               
               <div className="space-y-3">
-                {[1, 2, 3, 4, 5].map((num) => {
-                  const textKey = `button${num}Text`
-                  const linkKey = `button${num}Link`
-                  const styleKey = `button${num}Style`
-                  const currentText = eval(textKey)
-                  const currentLink = eval(linkKey)
-                  const currentStyle = eval(styleKey)
-                  
-                  return (
-                    <div key={num} className="grid grid-cols-3 gap-2 bg-gray-800/50 p-2 rounded">
-                      <input
-                        type="text"
-                        value={currentText || ''}
-                        onChange={(e) => onUpdate({ [textKey]: e.target.value })}
-                        className="w-full text-sm"
-                        placeholder={`Button ${num} Text`}
-                      />
-                      <input
-                        type="text"
-                        value={currentLink || ''}
-                        onChange={(e) => onUpdate({ [linkKey]: e.target.value })}
-                        className="w-full text-sm"
-                        placeholder={`/link${num}`}
-                      />
-                      <select
-                        value={currentStyle || 'outline'}
-                        onChange={(e) => onUpdate({ [styleKey]: e.target.value })}
-                        className="w-full text-sm"
-                      >
-                        <option value="primary">Primary</option>
-                        <option value="secondary">Secondary</option>
-                        <option value="outline">Outline</option>
-                      </select>
-                    </div>
-                  )
-                })}
+                {/* Button 1 */}
+                <div className="grid grid-cols-3 gap-2 bg-gray-800/50 p-2 rounded">
+                  <input
+                    type="text"
+                    defaultValue={button1Text || ''}
+                    onBlur={(e) => onUpdate({ button1Text: e.target.value })}
+                    className="w-full text-sm"
+                    placeholder="Button 1 Text"
+                  />
+                  <input
+                    type="text"
+                    defaultValue={button1Link || ''}
+                    onBlur={(e) => onUpdate({ button1Link: e.target.value })}
+                    className="w-full text-sm"
+                    placeholder="/link1"
+                  />
+                  <select
+                    value={button1Style || 'primary'}
+                    onChange={(e) => onUpdate({ button1Style: e.target.value })}
+                    className="w-full text-sm"
+                  >
+                    <option value="primary">Primary</option>
+                    <option value="secondary">Secondary</option>
+                    <option value="outline">Outline</option>
+                  </select>
+                </div>
+
+                {/* Button 2 */}
+                <div className="grid grid-cols-3 gap-2 bg-gray-800/50 p-2 rounded">
+                  <input
+                    type="text"
+                    defaultValue={button2Text || ''}
+                    onBlur={(e) => onUpdate({ button2Text: e.target.value })}
+                    className="w-full text-sm"
+                    placeholder="Button 2 Text"
+                  />
+                  <input
+                    type="text"
+                    defaultValue={button2Link || ''}
+                    onBlur={(e) => onUpdate({ button2Link: e.target.value })}
+                    className="w-full text-sm"
+                    placeholder="/link2"
+                  />
+                  <select
+                    value={button2Style || 'secondary'}
+                    onChange={(e) => onUpdate({ button2Style: e.target.value })}
+                    className="w-full text-sm"
+                  >
+                    <option value="primary">Primary</option>
+                    <option value="secondary">Secondary</option>
+                    <option value="outline">Outline</option>
+                  </select>
+                </div>
+
+                {/* Button 3 */}
+                <div className="grid grid-cols-3 gap-2 bg-gray-800/50 p-2 rounded">
+                  <input
+                    type="text"
+                    defaultValue={button3Text || ''}
+                    onBlur={(e) => onUpdate({ button3Text: e.target.value })}
+                    className="w-full text-sm"
+                    placeholder="Button 3 Text"
+                  />
+                  <input
+                    type="text"
+                    defaultValue={button3Link || ''}
+                    onBlur={(e) => onUpdate({ button3Link: e.target.value })}
+                    className="w-full text-sm"
+                    placeholder="/link3"
+                  />
+                  <select
+                    value={button3Style || 'outline'}
+                    onChange={(e) => onUpdate({ button3Style: e.target.value })}
+                    className="w-full text-sm"
+                  >
+                    <option value="primary">Primary</option>
+                    <option value="secondary">Secondary</option>
+                    <option value="outline">Outline</option>
+                  </select>
+                </div>
+
+                {/* Button 4 */}
+                <div className="grid grid-cols-3 gap-2 bg-gray-800/50 p-2 rounded">
+                  <input
+                    type="text"
+                    defaultValue={button4Text || ''}
+                    onBlur={(e) => onUpdate({ button4Text: e.target.value })}
+                    className="w-full text-sm"
+                    placeholder="Button 4 Text"
+                  />
+                  <input
+                    type="text"
+                    defaultValue={button4Link || ''}
+                    onBlur={(e) => onUpdate({ button4Link: e.target.value })}
+                    className="w-full text-sm"
+                    placeholder="/link4"
+                  />
+                  <select
+                    value={button4Style || 'outline'}
+                    onChange={(e) => onUpdate({ button4Style: e.target.value })}
+                    className="w-full text-sm"
+                  >
+                    <option value="primary">Primary</option>
+                    <option value="secondary">Secondary</option>
+                    <option value="outline">Outline</option>
+                  </select>
+                </div>
+
+                {/* Button 5 */}
+                <div className="grid grid-cols-3 gap-2 bg-gray-800/50 p-2 rounded">
+                  <input
+                    type="text"
+                    defaultValue={button5Text || ''}
+                    onBlur={(e) => onUpdate({ button5Text: e.target.value })}
+                    className="w-full text-sm"
+                    placeholder="Button 5 Text"
+                  />
+                  <input
+                    type="text"
+                    defaultValue={button5Link || ''}
+                    onBlur={(e) => onUpdate({ button5Link: e.target.value })}
+                    className="w-full text-sm"
+                    placeholder="/link5"
+                  />
+                  <select
+                    value={button5Style || 'outline'}
+                    onChange={(e) => onUpdate({ button5Style: e.target.value })}
+                    className="w-full text-sm"
+                  >
+                    <option value="primary">Primary</option>
+                    <option value="secondary">Secondary</option>
+                    <option value="outline">Outline</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -119,7 +217,7 @@ export default function TextSection({
 
             {/* Render Buttons */}
             {buttons.length > 0 && (
-              <div className={`flex flex-wrap gap-3 mt-6 justify-${textAlign === 'center' ? 'center' : textAlign === 'right' ? 'end' : 'start'}`}>
+              <div className="flex flex-wrap gap-3 mt-6 justify-center">
                 {buttons.map((btn, index) => (
                   <a
                     key={index}

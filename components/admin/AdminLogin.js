@@ -91,7 +91,7 @@ const handleLogin = async (e) => {
           </form>
 
           <div className="mt-8 text-center text-sm text-gray-400">
-            Default: admin / admin123
+            Please enter your credentials.
           </div>
         </div>
       </div>

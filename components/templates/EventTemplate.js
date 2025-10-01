@@ -404,24 +404,22 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
 }
 
 // Hero Editor Component
-function HeroEditor({ heroImage, heroHeader, heroSubtext, overlayText, onSave, onClose }) {
-  const { highlights_header = '', highlights_subtext = '', cards_header = '', cards_subtext = '' } = data || {}
-  
+function HeroEditor({ heroImage, heroHeader, heroSubtext, highlightsHeader, highlightsSubtext, cardsHeader, cardsSubtext, overlayText, onSave, onClose }) {
   const [formData, setFormData] = useState({
     hero_image: heroImage,
     hero_header: heroHeader || 'Epic Event',
     hero_subtext: heroSubtext || 'Join us for an unforgettable experience',
-    highlights_header: highlights_header,
-    highlights_subtext: highlights_subtext,
-    cards_header: cards_header,
-    cards_subtext: cards_subtext,
+    highlights_header: highlightsHeader || '',
+    highlights_subtext: highlightsSubtext || '',
+    cards_header: cardsHeader || '',
+    cards_subtext: cardsSubtext || '',
     overlay_text: overlayText
   })
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg max-h-screen overflow-y-auto">
-        <h3 className="text-xl font-bold mb-4">Edit Hero Section</h3>
+        <h3 className="text-xl font-bold mb-4">Edit Hero Section & Headers</h3>
         
         <div className="space-y-4">
           <div>
@@ -436,7 +434,7 @@ function HeroEditor({ heroImage, heroHeader, heroSubtext, overlayText, onSave, o
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Header Text
+              Hero Header Text
             </label>
             <input
               type="text"
@@ -449,7 +447,7 @@ function HeroEditor({ heroImage, heroHeader, heroSubtext, overlayText, onSave, o
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Subtext
+              Hero Subtext
             </label>
             <textarea
               value={formData.hero_subtext}
@@ -458,13 +456,55 @@ function HeroEditor({ heroImage, heroHeader, heroSubtext, overlayText, onSave, o
               placeholder="Join us for an unforgettable experience"
             />
           </div>
+
+          <div className="border-t border-gray-600 pt-4">
+            <h4 className="text-sm font-semibold mb-3 text-gray-300">Highlights Section Header (Optional)</h4>
+            
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={formData.highlights_header}
+                onChange={(e) => setFormData(prev => ({ ...prev, highlights_header: e.target.value }))}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                placeholder="Highlights Header"
+              />
+              
+              <textarea
+                value={formData.highlights_subtext}
+                onChange={(e) => setFormData(prev => ({ ...prev, highlights_subtext: e.target.value }))}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white h-16 resize-none"
+                placeholder="Highlights Subtext"
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-gray-600 pt-4">
+            <h4 className="text-sm font-semibold mb-3 text-gray-300">Cards Section Header (Optional)</h4>
+            
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={formData.cards_header}
+                onChange={(e) => setFormData(prev => ({ ...prev, cards_header: e.target.value }))}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                placeholder="Cards Header"
+              />
+              
+              <textarea
+                value={formData.cards_subtext}
+                onChange={(e) => setFormData(prev => ({ ...prev, cards_subtext: e.target.value }))}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white h-16 resize-none"
+                placeholder="Cards Subtext"
+              />
+            </div>
+          </div>
         </div>
 
         <div className="flex space-x-4 mt-6">
           <button onClick={() => onSave(formData)} className="flex-1 btn-primary">
             Save
           </button>
-          <button onClick={onClose} className="flex-1 btn-secondary">
+          <button onClick={onClose) className="flex-1 btn-secondary">
             Cancel
           </button>
         </div>

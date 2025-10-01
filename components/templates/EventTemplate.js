@@ -322,10 +322,10 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
           heroImage={hero_image}
           heroHeader={hero_header}
           heroSubtext={hero_subtext}
-          highlightsHeader={highlights_header}
-          highlightsSubtext={highlights_subtext}
-          cardsHeader={cards_header}
-          cardsSubtext={cards_subtext}
+          highlightsHeader={highlights_header || ''}
+          highlightsSubtext={highlights_subtext || ''}
+          cardsHeader={cards_header || ''}
+          cardsSubtext={cards_subtext || ''}
           overlayText={overlay_text}
           onSave={(data) => {
             onUpdate('hero_image', data.hero_image)

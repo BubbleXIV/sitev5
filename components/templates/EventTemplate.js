@@ -19,7 +19,11 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
     overlay_text = '',
     hero_buttons = [],
     highlight_items = [],
+    highlights_header = '',
+    highlights_subtext = '',
     event_cards = [],
+    cards_header = '',
+    cards_subtext = '',
     action_buttons = [],
     affiliate_logos = [],
     special_guests = []
@@ -78,57 +82,73 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
 
           {/* Highlight Items (3 items with image, description, button) */}
           {highlight_items.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-              {highlight_items.slice(0, 3).map((item, index) => (
-                <div key={index} className="card bg-black/40 backdrop-blur-sm">
-                  {item.image && (
-                    <img
-                      src={item.image}
-                      alt={item.description || `Highlight ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg mb-3"
-                    />
-                  )}
-                  {item.description && (
-                    <p className="text-gray-300 text-sm mb-3">{item.description}</p>
-                  )}
-                  {item.buttonText && (
-                    <a
-                      href={item.link || '#'}
-                      className="inline-block px-4 py-2 bg-nightshade-600 hover:bg-nightshade-700 rounded text-white text-sm font-medium transition"
-                    >
-                      {item.buttonText}
-                    </a>
-                  )}
-                </div>
-              ))}
+            <div className="mb-12">
+              {highlights_header && (
+                <h2 className="text-3xl font-bold mb-2">{highlights_header}</h2>
+              )}
+              {highlights_subtext && (
+                <p className="text-lg text-gray-300 mb-6">{highlights_subtext}</p>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {highlight_items.slice(0, 3).map((item, index) => (
+                  <div key={index} className="card bg-black/40 backdrop-blur-sm">
+                    {item.image && (
+                      <img
+                        src={item.image}
+                        alt={item.description || `Highlight ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg mb-3"
+                      />
+                    )}
+                    {item.description && (
+                      <p className="text-gray-300 text-sm mb-3">{item.description}</p>
+                    )}
+                    {item.buttonText && (
+                      <a
+                        href={item.link || '#'}
+                        className="inline-block px-4 py-2 bg-nightshade-600 hover:bg-nightshade-700 rounded text-white text-sm font-medium transition"
+                      >
+                        {item.buttonText}
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           {/* Event Cards (5 cards with image, description, button) */}
           {event_cards.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
-              {event_cards.slice(0, 5).map((card, index) => (
-                <div key={index} className="card bg-black/30 backdrop-blur-sm">
-                  {card.image && (
-                    <img
-                      src={card.image}
-                      alt={card.description || `Card ${index + 1}`}
-                      className="w-full h-24 object-cover rounded mb-2"
-                    />
-                  )}
-                  {card.description && (
-                    <p className="text-gray-300 text-xs mb-2">{card.description}</p>
-                  )}
-                  {card.buttonText && (
-                    <a
-                      href={card.link || '#'}
-                      className="inline-block px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white text-xs font-medium transition"
-                    >
-                      {card.buttonText}
-                    </a>
-                  )}
-                </div>
-              ))}
+            <div className="mb-12">
+              {cards_header && (
+                <h2 className="text-3xl font-bold mb-2">{cards_header}</h2>
+              )}
+              {cards_subtext && (
+                <p className="text-lg text-gray-300 mb-6">{cards_subtext}</p>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {event_cards.slice(0, 5).map((card, index) => (
+                  <div key={index} className="card bg-black/30 backdrop-blur-sm">
+                    {card.image && (
+                      <img
+                        src={card.image}
+                        alt={card.description || `Card ${index + 1}`}
+                        className="w-full h-24 object-cover rounded mb-2"
+                      />
+                    )}
+                    {card.description && (
+                      <p className="text-gray-300 text-xs mb-2">{card.description}</p>
+                    )}
+                    {card.buttonText && (
+                      <a
+                        href={card.link || '#'}
+                        className="inline-block px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white text-xs font-medium transition"
+                      >
+                        {card.buttonText}
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -153,7 +173,7 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
           {isEditable && (
             <div className="flex flex-wrap justify-center gap-2">
               <button onClick={() => setIsEditingHero(true)} className="btn-primary text-sm">
-                Edit Hero Text
+                Edit Hero Text & Headers
               </button>
               <button onClick={() => setIsEditingHighlights(true)} className="btn-secondary text-sm">
                 Edit Highlights (3)
@@ -286,7 +306,7 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
                       rel="noopener noreferrer"
                       className="inline-block px-4 py-2 bg-nightshade-600 hover:bg-nightshade-700 rounded transition-colors text-white text-sm font-medium"
                     >
-                      View Profile
+                      {guest.buttonText || 'View Profile'}
                     </a>
                   )}
                 </div>
@@ -302,11 +322,19 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
           heroImage={hero_image}
           heroHeader={hero_header}
           heroSubtext={hero_subtext}
+          highlightsHeader={highlights_header}
+          highlightsSubtext={highlights_subtext}
+          cardsHeader={cards_header}
+          cardsSubtext={cards_subtext}
           overlayText={overlay_text}
           onSave={(data) => {
             onUpdate('hero_image', data.hero_image)
             onUpdate('hero_header', data.hero_header)
             onUpdate('hero_subtext', data.hero_subtext)
+            onUpdate('highlights_header', data.highlights_header)
+            onUpdate('highlights_subtext', data.highlights_subtext)
+            onUpdate('cards_header', data.cards_header)
+            onUpdate('cards_subtext', data.cards_subtext)
             onUpdate('overlay_text', data.overlay_text)
             setIsEditingHero(false)
           }}
@@ -377,10 +405,16 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
 
 // Hero Editor Component
 function HeroEditor({ heroImage, heroHeader, heroSubtext, overlayText, onSave, onClose }) {
+  const { highlights_header = '', highlights_subtext = '', cards_header = '', cards_subtext = '' } = data || {}
+  
   const [formData, setFormData] = useState({
     hero_image: heroImage,
     hero_header: heroHeader || 'Epic Event',
     hero_subtext: heroSubtext || 'Join us for an unforgettable experience',
+    highlights_header: highlights_header,
+    highlights_subtext: highlights_subtext,
+    cards_header: cards_header,
+    cards_subtext: cards_subtext,
     overlay_text: overlayText
   })
 
@@ -708,7 +742,8 @@ function GuestEditor({ guest, onSave, onClose }) {
     name: guest?.name || '',
     bio: guest?.bio || '',
     image: guest?.image || '',
-    link: guest?.link || ''
+    link: guest?.link || '',
+    buttonText: guest?.buttonText || 'View Profile'
   })
 
   const handleSave = () => {
@@ -778,6 +813,20 @@ function GuestEditor({ guest, onSave, onClose }) {
               onChange={(e) => setFormData(prev => ({ ...prev, link: e.target.value }))}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
               placeholder="https://example.com"
+            />
+          </div>
+
+          {/* Button Text */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Button Text
+            </label>
+            <input
+              type="text"
+              value={formData.buttonText}
+              onChange={(e) => setFormData(prev => ({ ...prev, buttonText: e.target.value }))}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+              placeholder="View Profile"
             />
           </div>
         </div>

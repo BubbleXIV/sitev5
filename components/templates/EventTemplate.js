@@ -3,44 +3,32 @@ import { useState } from 'react'
 import { Plus, Edit, Trash2, ExternalLink, MessageCircle, Calendar, MapPin } from 'lucide-react'
 import ImageUpload from '@/components/ImageUpload'
 
-export default function EventTemplate({ content, data, isEditable, onSave, onUpdate }) {
+export default function EventTemplate({ data, isEditable, onUpdate }) {
   const [isEditingHero, setIsEditingHero] = useState(false)
   const [isEditingGuest, setIsEditingGuest] = useState(null)
   const [isAddingGuest, setIsAddingGuest] = useState(false)
   const [isEditingAffiliates, setIsEditingAffiliates] = useState(false)
   const [isEditingButtons, setIsEditingButtons] = useState(false)
-
-  // Support both prop structures - prioritize content (from PageBuilder) over data (legacy)
-  const templateData = content || data || {}
-  const updateFunction = onSave || onUpdate
+  const [isEditingHighlights, setIsEditingHighlights] = useState(false)
+  const [isEditingCards, setIsEditingCards] = useState(false)
 
   const {
     hero_image = '',
+    hero_header = 'Epic Event',
+    hero_subtext = 'Join us for an unforgettable experience',
     overlay_text = '',
+    hero_buttons = [],
+    highlight_items = [],
+    event_cards = [],
     action_buttons = [],
     affiliate_logos = [],
     special_guests = []
-  } = templateData
-
-  // Create a unified update function that works with both prop structures
-  const handleUpdate = (field, value) => {
-    if (onSave) {
-      // PageBuilder style - update entire content object
-      const updatedContent = {
-        ...templateData,
-        [field]: value
-      }
-      onSave(updatedContent)
-    } else if (onUpdate) {
-      // Legacy style - update specific field
-      onUpdate(field, value)
-    }
-  }
+  } = data
 
   const updateGuest = (index, guestData) => {
     const newGuests = [...special_guests]
     newGuests[index] = { ...newGuests[index], ...guestData }
-    handleUpdate('special_guests', newGuests)
+    onUpdate('special_guests', newGuests)
     setIsEditingGuest(null)
   }
 
@@ -53,13 +41,13 @@ export default function EventTemplate({ content, data, isEditable, onSave, onUpd
       link: '',
       ...guestData
     }
-    handleUpdate('special_guests', [...special_guests, newGuest])
+    onUpdate('special_guests', [...special_guests, newGuest])
     setIsAddingGuest(false)
   }
 
   const removeGuest = (index) => {
     const newGuests = special_guests.filter((_, i) => i !== index)
-    handleUpdate('special_guests', newGuests)
+    onUpdate('special_guests', newGuests)
   }
 
   return (
@@ -81,34 +69,79 @@ export default function EventTemplate({ content, data, isEditable, onSave, onUpd
         )}
 
         {/* Content */}
-        <div className="relative z-10 text-center max-w-4xl mx-auto px-4">
-          {overlay_text ? (
-            <div className="mb-8">
-              <div className="text-4xl md:text-6xl font-bold mb-4" dangerouslySetInnerHTML={{ __html: overlay_text }} />
-            </div>
-          ) : (
-            <div className="mb-8">
-              <h1 className="text-4xl md:text-6xl font-bold mb-4">Epic Event</h1>
-              <p className="text-xl text-gray-300">Join us for an unforgettable experience</p>
+        <div className="relative z-10 text-center max-w-6xl mx-auto px-4 py-20">
+          {/* Header and Subtext */}
+          <div className="mb-8">
+            <h1 className="text-4xl md:text-6xl font-bold mb-4">{hero_header}</h1>
+            <p className="text-xl md:text-2xl text-gray-300">{hero_subtext}</p>
+          </div>
+
+          {/* Highlight Items (3 items with image, description, button) */}
+          {highlight_items.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+              {highlight_items.slice(0, 3).map((item, index) => (
+                <div key={index} className="card bg-black/40 backdrop-blur-sm">
+                  {item.image && (
+                    <img
+                      src={item.image}
+                      alt={item.description || `Highlight ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg mb-3"
+                    />
+                  )}
+                  {item.description && (
+                    <p className="text-gray-300 text-sm mb-3">{item.description}</p>
+                  )}
+                  {item.buttonText && (
+                    <a
+                      href={item.link || '#'}
+                      className="inline-block px-4 py-2 bg-nightshade-600 hover:bg-nightshade-700 rounded text-white text-sm font-medium transition"
+                    >
+                      {item.buttonText}
+                    </a>
+                  )}
+                </div>
+              ))}
             </div>
           )}
 
-          {/* Action Buttons */}
-          {action_buttons.length > 0 && (
+          {/* Event Cards (5 cards with image, description, button) */}
+          {event_cards.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
+              {event_cards.slice(0, 5).map((card, index) => (
+                <div key={index} className="card bg-black/30 backdrop-blur-sm">
+                  {card.image && (
+                    <img
+                      src={card.image}
+                      alt={card.description || `Card ${index + 1}`}
+                      className="w-full h-24 object-cover rounded mb-2"
+                    />
+                  )}
+                  {card.description && (
+                    <p className="text-gray-300 text-xs mb-2">{card.description}</p>
+                  )}
+                  {card.buttonText && (
+                    <a
+                      href={card.link || '#'}
+                      className="inline-block px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white text-xs font-medium transition"
+                    >
+                      {card.buttonText}
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Hero Bottom Buttons (3 optional buttons) */}
+          {hero_buttons.length > 0 && (
             <div className="flex flex-wrap justify-center gap-4 mb-8">
-              {action_buttons.map((button, index) => (
+              {hero_buttons.slice(0, 3).map((button, index) => (
                 <a
                   key={index}
-                  href={button.link}
+                  href={button.link || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`px-8 py-3 rounded-lg font-semibold transition-colors ${
-                    button.style === 'primary' 
-                      ? 'bg-nightshade-600 hover:bg-nightshade-700 text-white'
-                      : button.style === 'secondary'
-                      ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                      : 'border-2 border-white hover:bg-white hover:text-gray-900 text-white'
-                  }`}
+                  className="px-8 py-3 bg-gradient-to-r from-nightshade-600 to-purple-600 hover:from-nightshade-700 hover:to-purple-700 rounded-lg font-semibold transition-colors"
                 >
                   {button.text}
                 </a>
@@ -118,18 +151,18 @@ export default function EventTemplate({ content, data, isEditable, onSave, onUpd
 
           {/* Edit Hero Controls */}
           {isEditable && (
-            <div className="space-x-2">
-              <button
-                onClick={() => setIsEditingHero(true)}
-                className="btn-primary"
-              >
-                Edit Hero
+            <div className="flex flex-wrap justify-center gap-2">
+              <button onClick={() => setIsEditingHero(true)} className="btn-primary text-sm">
+                Edit Hero Text
               </button>
-              <button
-                onClick={() => setIsEditingButtons(true)}
-                className="btn-secondary"
-              >
-                Edit Buttons
+              <button onClick={() => setIsEditingHighlights(true)} className="btn-secondary text-sm">
+                Edit Highlights (3)
+              </button>
+              <button onClick={() => setIsEditingCards(true)} className="btn-secondary text-sm">
+                Edit Cards (5)
+              </button>
+              <button onClick={() => setIsEditingButtons(true)} className="btn-secondary text-sm">
+                Edit Bottom Buttons
               </button>
             </div>
           )}
@@ -167,7 +200,7 @@ export default function EventTemplate({ content, data, isEditable, onSave, onUpd
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Special Guests</h2>
-            <p className="text-gray-400">Meet our featured performers</p>
+            <p className="text-gray-400">Meet our featured performers and speakers</p>
           </div>
 
           {/* Edit Controls */}
@@ -251,10 +284,9 @@ export default function EventTemplate({ content, data, isEditable, onSave, onUpd
                       href={guest.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center text-nightshade-400 hover:text-nightshade-300 transition-colors"
+                      className="inline-block px-4 py-2 bg-nightshade-600 hover:bg-nightshade-700 rounded transition-colors text-white text-sm font-medium"
                     >
-                      <ExternalLink size={14} className="mr-1" />
-                      <span className="text-sm">Learn More</span>
+                      View Profile
                     </a>
                   )}
                 </div>
@@ -268,21 +300,47 @@ export default function EventTemplate({ content, data, isEditable, onSave, onUpd
       {isEditingHero && (
         <HeroEditor
           heroImage={hero_image}
+          heroHeader={hero_header}
+          heroSubtext={hero_subtext}
           overlayText={overlay_text}
           onSave={(data) => {
-            handleUpdate('hero_image', data.hero_image)
-            handleUpdate('overlay_text', data.overlay_text)
+            onUpdate('hero_image', data.hero_image)
+            onUpdate('hero_header', data.hero_header)
+            onUpdate('hero_subtext', data.hero_subtext)
+            onUpdate('overlay_text', data.overlay_text)
             setIsEditingHero(false)
           }}
           onClose={() => setIsEditingHero(false)}
         />
       )}
 
+      {isEditingHighlights && (
+        <HighlightsEditor
+          highlights={highlight_items}
+          onSave={(highlights) => {
+            onUpdate('highlight_items', highlights)
+            setIsEditingHighlights(false)
+          }}
+          onClose={() => setIsEditingHighlights(false)}
+        />
+      )}
+
+      {isEditingCards && (
+        <CardsEditor
+          cards={event_cards}
+          onSave={(cards) => {
+            onUpdate('event_cards', cards)
+            setIsEditingCards(false)
+          }}
+          onClose={() => setIsEditingCards(false)}
+        />
+      )}
+
       {isEditingButtons && (
-        <ButtonEditor
-          buttons={action_buttons}
+        <HeroButtonsEditor
+          buttons={hero_buttons}
           onSave={(buttons) => {
-            handleUpdate('action_buttons', buttons)
+            onUpdate('hero_buttons', buttons)
             setIsEditingButtons(false)
           }}
           onClose={() => setIsEditingButtons(false)}
@@ -293,7 +351,7 @@ export default function EventTemplate({ content, data, isEditable, onSave, onUpd
         <AffiliateEditor
           affiliates={affiliate_logos}
           onSave={(affiliates) => {
-            handleUpdate('affiliate_logos', affiliates)
+            onUpdate('affiliate_logos', affiliates)
             setIsEditingAffiliates(false)
           }}
           onClose={() => setIsEditingAffiliates(false)}
@@ -318,15 +376,17 @@ export default function EventTemplate({ content, data, isEditable, onSave, onUpd
 }
 
 // Hero Editor Component
-function HeroEditor({ heroImage, overlayText, onSave, onClose }) {
+function HeroEditor({ heroImage, heroHeader, heroSubtext, overlayText, onSave, onClose }) {
   const [formData, setFormData] = useState({
     hero_image: heroImage,
+    hero_header: heroHeader || 'Epic Event',
+    hero_subtext: heroSubtext || 'Join us for an unforgettable experience',
     overlay_text: overlayText
   })
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg max-h-screen overflow-y-auto">
         <h3 className="text-xl font-bold mb-4">Edit Hero Section</h3>
         
         <div className="space-y-4">
@@ -342,13 +402,26 @@ function HeroEditor({ heroImage, overlayText, onSave, onClose }) {
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Overlay Text (HTML allowed)
+              Header Text
+            </label>
+            <input
+              type="text"
+              value={formData.hero_header}
+              onChange={(e) => setFormData(prev => ({ ...prev, hero_header: e.target.value }))}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+              placeholder="Epic Event"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Subtext
             </label>
             <textarea
-              value={formData.overlay_text}
-              onChange={(e) => setFormData(prev => ({ ...prev, overlay_text: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white h-24 resize-none"
-              placeholder="<h1>Event Title</h1><p>Event description...</p>"
+              value={formData.hero_subtext}
+              onChange={(e) => setFormData(prev => ({ ...prev, hero_subtext: e.target.value }))}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white h-20 resize-none"
+              placeholder="Join us for an unforgettable experience"
             />
           </div>
         </div>
@@ -366,19 +439,143 @@ function HeroEditor({ heroImage, overlayText, onSave, onClose }) {
   )
 }
 
-// Button Editor Component  
-function ButtonEditor({ buttons, onSave, onClose }) {
-  const [formButtons, setFormButtons] = useState(buttons.length > 0 ? buttons : [{ text: '', link: '', style: 'primary' }])
+// Highlights Editor Component (3 items)
+function HighlightsEditor({ highlights, onSave, onClose }) {
+  const [formHighlights, setFormHighlights] = useState(
+    highlights.length > 0 ? highlights.slice(0, 3) : Array(3).fill({ image: '', description: '', buttonText: '', link: '' })
+  )
 
-  const addButton = () => {
-    if (formButtons.length < 3) {
-      setFormButtons([...formButtons, { text: '', link: '', style: 'primary' }])
-    }
+  const updateHighlight = (index, field, value) => {
+    const newHighlights = [...formHighlights]
+    newHighlights[index] = { ...newHighlights[index], [field]: value }
+    setFormHighlights(newHighlights)
   }
 
-  const removeButton = (index) => {
-    setFormButtons(formButtons.filter((_, i) => i !== index))
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+        <h3 className="text-xl font-bold mb-4">Edit Highlight Items (3 max)</h3>
+        
+        <div className="space-y-6">
+          {formHighlights.map((highlight, index) => (
+            <div key={index} className="p-4 border border-gray-600 rounded space-y-3">
+              <h4 className="font-medium">Highlight {index + 1}</h4>
+              
+              <ImageUpload
+                currentImage={highlight.image}
+                onImageUploaded={(url) => updateHighlight(index, 'image', url)}
+              />
+              
+              <textarea
+                placeholder="Description"
+                value={highlight.description}
+                onChange={(e) => updateHighlight(index, 'description', e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white h-20 resize-none"
+              />
+              
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="Button text"
+                  value={highlight.buttonText}
+                  onChange={(e) => updateHighlight(index, 'buttonText', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                />
+                <input
+                  type="url"
+                  placeholder="Button link"
+                  value={highlight.link}
+                  onChange={(e) => updateHighlight(index, 'link', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex space-x-4 mt-6">
+          <button onClick={() => onSave(formHighlights)} className="flex-1 btn-primary">
+            Save
+          </button>
+          <button onClick={onClose} className="flex-1 btn-secondary">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Cards Editor Component (5 cards)
+function CardsEditor({ cards, onSave, onClose }) {
+  const [formCards, setFormCards] = useState(
+    cards.length > 0 ? cards.slice(0, 5) : Array(5).fill({ image: '', description: '', buttonText: '', link: '' })
+  )
+
+  const updateCard = (index, field, value) => {
+    const newCards = [...formCards]
+    newCards[index] = { ...newCards[index], [field]: value }
+    setFormCards(newCards)
   }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-3xl max-h-screen overflow-y-auto">
+        <h3 className="text-xl font-bold mb-4">Edit Event Cards (5 max)</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {formCards.map((card, index) => (
+            <div key={index} className="p-4 border border-gray-600 rounded space-y-3">
+              <h4 className="font-medium text-sm">Card {index + 1}</h4>
+              
+              <ImageUpload
+                currentImage={card.image}
+                onImageUploaded={(url) => updateCard(index, 'image', url)}
+              />
+              
+              <textarea
+                placeholder="Description"
+                value={card.description}
+                onChange={(e) => updateCard(index, 'description', e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm h-16 resize-none"
+              />
+              
+              <input
+                type="text"
+                placeholder="Button text"
+                value={card.buttonText}
+                onChange={(e) => updateCard(index, 'buttonText', e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+              />
+              <input
+                type="url"
+                placeholder="Button link"
+                value={card.link}
+                onChange={(e) => updateCard(index, 'link', e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="flex space-x-4 mt-6">
+          <button onClick={() => onSave(formCards)} className="flex-1 btn-primary">
+            Save
+          </button>
+          <button onClick={onClose} className="flex-1 btn-secondary">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Hero Buttons Editor Component (3 buttons at bottom)
+function HeroButtonsEditor({ buttons, onSave, onClose }) {
+  const [formButtons, setFormButtons] = useState(
+    buttons.length > 0 ? buttons.slice(0, 3) : Array(3).fill({ text: '', link: '' })
+  )
 
   const updateButton = (index, field, value) => {
     const newButtons = [...formButtons]
@@ -389,20 +586,12 @@ function ButtonEditor({ buttons, onSave, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg">
-        <h3 className="text-xl font-bold mb-4">Edit Action Buttons</h3>
+        <h3 className="text-xl font-bold mb-4">Edit Hero Bottom Buttons (3 max)</h3>
         
-        <div className="space-y-4 max-h-96 overflow-y-auto">
+        <div className="space-y-4">
           {formButtons.map((button, index) => (
             <div key={index} className="p-4 border border-gray-600 rounded space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Button {index + 1}</span>
-                <button
-                  onClick={() => removeButton(index)}
-                  className="text-red-400 hover:text-red-300"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
+              <h4 className="font-medium">Button {index + 1}</h4>
               
               <input
                 type="text"
@@ -419,28 +608,8 @@ function ButtonEditor({ buttons, onSave, onClose }) {
                 onChange={(e) => updateButton(index, 'link', e.target.value)}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
               />
-              
-              <select
-                value={button.style}
-                onChange={(e) => updateButton(index, 'style', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-              >
-                <option value="primary">Primary</option>
-                <option value="secondary">Secondary</option>
-                <option value="outline">Outline</option>
-              </select>
             </div>
           ))}
-        </div>
-
-        <div className="flex justify-between items-center mt-4">
-          <button
-            onClick={addButton}
-            disabled={formButtons.length >= 3}
-            className="btn-secondary text-sm"
-          >
-            Add Button ({formButtons.length}/3)
-          </button>
         </div>
 
         <div className="flex space-x-4 mt-6">
@@ -456,7 +625,7 @@ function ButtonEditor({ buttons, onSave, onClose }) {
   )
 }
 
-// Affiliate Editor Component
+// Affiliate Editor Component  
 function AffiliateEditor({ affiliates, onSave, onClose }) {
   const [formAffiliates, setFormAffiliates] = useState(affiliates.length > 0 ? affiliates : [{ name: '', url: '' }])
 

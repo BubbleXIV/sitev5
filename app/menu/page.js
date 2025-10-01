@@ -21,13 +21,15 @@ export default function MenuPage() {
           menu_items (*)
         `)
         .order('sort_order')
-
-      // Sort menu items within each category
+      
+      // Filter out hidden items and sort remaining items
       const sortedCategories = categoriesData?.map(category => ({
         ...category,
-        menu_items: category.menu_items?.sort((a, b) => a.sort_order - b.sort_order) || []
+        menu_items: category.menu_items
+          ?.filter(item => !item.is_hidden) // ADD THIS LINE
+          ?.sort((a, b) => a.sort_order - b.sort_order) || []
       })) || []
-
+      
       setCategories(sortedCategories)
     } catch (error) {
       console.error('Error fetching menu:', error)

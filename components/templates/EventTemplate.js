@@ -167,7 +167,7 @@ export default function EventTemplate({ content, data, isEditable, onSave, onUpd
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Special Guests</h2>
-            <p className="text-gray-400">Meet our featured performers and speakers</p>
+            <p className="text-gray-400">Meet our featured performers.</p>
           </div>
 
           {/* Edit Controls */}

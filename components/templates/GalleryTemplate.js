@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { X, Plus, Edit, Trash2, Tag, Image as ImageIcon } from 'lucide-react'
+import { X, Plus, Edit, Trash2, Tag, Image as ImageIcon, GripVertical } from 'lucide-react'
 import ImageUpload from '@/components/ImageUpload'
 
 export default function GalleryTemplate({ data, isEditable, onUpdate }) {
@@ -9,6 +9,7 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
   const [isEditingCategories, setIsEditingCategories] = useState(false)
   const [isAddingImage, setIsAddingImage] = useState(false)
   const [editingImageIndex, setEditingImageIndex] = useState(null)
+  const [draggedIndex, setDraggedIndex] = useState(null)
 
   const { gallery_images = [], gallery_categories = [] } = data
 
@@ -61,6 +62,27 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
   const removeImage = (index) => {
     const newImages = gallery_images.filter((_, i) => i !== index)
     onUpdate('gallery_images', newImages)
+  }
+
+  const handleDragStart = (index) => {
+    setDraggedIndex(index)
+  }
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault()
+    if (draggedIndex === null || draggedIndex === index) return
+
+    const newImages = [...gallery_images]
+    const draggedItem = newImages[draggedIndex]
+    newImages.splice(draggedIndex, 1)
+    newImages.splice(index, 0, draggedItem)
+    
+    onUpdate('gallery_images', newImages)
+    setDraggedIndex(index)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null)
   }
 
   const navigateImage = (direction) => {
@@ -148,12 +170,25 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredImages.map((image, index) => (
+            {gallery_images.map((image, index) => (
               <div
                 key={image.id}
-                className="relative group cursor-pointer"
+                draggable={isEditable}
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={handleDragEnd}
+                className={`relative group ${isEditable ? 'cursor-move' : 'cursor-pointer'} ${
+                  draggedIndex === index ? 'opacity-50' : ''
+                }`}
                 onClick={() => !isEditable && setSelectedImage(image)}
               >
+                {/* Drag Handle */}
+                {isEditable && (
+                  <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <GripVertical size={20} className="text-white drop-shadow-lg" />
+                  </div>
+                )}
+
                 <div className="aspect-square bg-gray-800 rounded-lg overflow-hidden">
                   {image.url ? (
                     <img
@@ -174,7 +209,7 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            setEditingImageIndex(gallery_images.findIndex(img => img.id === image.id))
+                            setEditingImageIndex(index)
                           }}
                           className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
                         >
@@ -183,7 +218,7 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            removeImage(gallery_images.findIndex(img => img.id === image.id))
+                            removeImage(index)
                           }}
                           className="p-2 bg-red-600 hover:bg-red-700 rounded-lg"
                         >
@@ -215,18 +250,25 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
 
       {/* Lightbox Modal */}
       {selectedImage && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
-          <div className="relative max-w-4xl max-h-full">
+        <div 
+          className="fixed inset-0 bg-black/95 flex items-center justify-center z-50 p-4 md:p-8"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div 
+            className="relative w-full h-full max-w-7xl flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
             <img
               src={selectedImage.url}
               alt={selectedImage.title || 'Gallery image'}
               className="max-w-full max-h-full object-contain"
+              style={{ maxHeight: 'calc(100vh - 8rem)' }}
             />
             
             {/* Close Button */}
             <button
               onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 rounded-lg"
+              className="absolute top-0 right-0 md:top-4 md:right-4 p-3 bg-black/50 hover:bg-black/70 rounded-lg transition-colors"
             >
               <X size={24} />
             </button>
@@ -235,14 +277,20 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
             {filteredImages.length > 1 && (
               <>
                 <button
-                  onClick={() => navigateImage('prev')}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 rounded-lg"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigateImage('prev')
+                  }}
+                  className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-black/70 rounded-lg text-2xl transition-colors"
                 >
                   ←
                 </button>
                 <button
-                  onClick={() => navigateImage('next')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 rounded-lg"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigateImage('next')
+                  }}
+                  className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-black/70 rounded-lg text-2xl transition-colors"
                 >
                   →
                 </button>
@@ -251,12 +299,12 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
             
             {/* Image Info */}
             {(selectedImage.title || selectedImage.description) && (
-              <div className="absolute bottom-4 left-4 right-4 bg-black/70 p-4 rounded-lg">
+              <div className="absolute bottom-0 left-0 right-0 md:bottom-4 md:left-4 md:right-4 bg-black/80 p-4 md:p-6 rounded-none md:rounded-lg">
                 {selectedImage.title && (
-                  <h3 className="font-bold text-lg mb-1">{selectedImage.title}</h3>
+                  <h3 className="font-bold text-lg md:text-xl mb-2">{selectedImage.title}</h3>
                 )}
                 {selectedImage.description && (
-                  <p className="text-gray-300">{selectedImage.description}</p>
+                  <p className="text-gray-300 text-sm md:text-base">{selectedImage.description}</p>
                 )}
               </div>
             )}

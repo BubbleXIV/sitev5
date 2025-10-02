@@ -103,18 +103,24 @@ export default function PageBuilder({ content, isEditable = false, onSave, templ
     }
   }, [content, template])
 
-  // Handle template-specific updates
-  const handleTemplateUpdate = (field, value) => {
-    const newTemplateData = { ...templateData, [field]: value }
-    setTemplateData(newTemplateData)
-    
-    if (onSave) {
+// Handle template-specific updates
+const handleTemplateUpdate = (field, value) => {
+  setTemplateData(prev => ({ ...prev, [field]: value }))
+}
+
+// Add this useEffect to save after state updates
+useEffect(() => {
+  if (onSave && Object.keys(templateData).length > 0) {
+    const timeoutId = setTimeout(() => {
       onSave({
         elements,
-        ...newTemplateData
+        ...templateData
       })
-    }
+    }, 500) // Wait 500ms after last update
+    
+    return () => clearTimeout(timeoutId)
   }
+}, [templateData])
 
   const onDragEnd = (result) => {
     if (!result.destination || !isEditable) return

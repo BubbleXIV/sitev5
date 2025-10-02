@@ -90,7 +90,7 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
                   <img
                     src={featured_card.image}
                     alt={featured_card.description || 'Featured'}
-                    className="w-full h-64 object-cover rounded-lg mb-6"
+                    className="w-full h-96 object-cover rounded-lg mb-6"
                   />
                 )}
                 {featured_card.description && (
@@ -188,9 +188,9 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
           )}
 
           {/* Hero Bottom Buttons (3 optional buttons) */}
-          {hero_buttons.length > 0 && (
+          {hero_buttons.length > 0 && hero_buttons.some(btn => btn.text && btn.text.trim()) && (
             <div className="flex flex-wrap justify-center gap-4 mb-8">
-              {hero_buttons.slice(0, 3).map((button, index) => (
+              {hero_buttons.slice(0, 3).filter(button => button.text && button.text.trim()).map((button, index) => (
                 <a
                   key={index}
                   href={button.link || '#'}

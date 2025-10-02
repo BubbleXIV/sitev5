@@ -27,7 +27,7 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
     action_buttons = [],
     affiliate_logos = [],
     special_guests = []
-  } = data
+  } = data || {}
 
   const updateGuest = (index, guestData) => {
     const newGuests = [...special_guests]
@@ -250,15 +250,15 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
               {special_guests.map((guest, index) => (
                 <div
-                  key={guest.id}
+                  key={guest?.id || `guest-${index}`}
                   className="text-center group relative"
                 >
                   {/* Guest Image */}
                   <div className="relative mb-4">
-                    {guest.image ? (
+                    {guest?.image ? (
                       <img
                         src={guest.image}
-                        alt={guest.name}
+                        alt={guest?.name || 'Guest'}
                         className="w-32 h-32 mx-auto rounded-full object-cover border-4 border-nightshade-500"
                       />
                     ) : (
@@ -290,23 +290,23 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
 
                   {/* Guest Info */}
                   <h3 className="font-bold text-lg mb-2 text-nightshade-300">
-                    {guest.name || 'Guest Name'}
+                    {guest?.name || 'Guest Name'}
                   </h3>
                   
-                  {guest.bio && (
+                  {guest?.bio && (
                     <p className="text-gray-400 text-sm mb-3 line-clamp-3">
                       {guest.bio}
                     </p>
                   )}
 
-                  {guest.link && (
+                  {guest?.link && (
                     <a
                       href={guest.link}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-block px-4 py-2 bg-nightshade-600 hover:bg-nightshade-700 rounded transition-colors text-white text-sm font-medium"
                     >
-                      {guest.buttonText || 'View Profile'}
+                      {guest?.buttonText || 'View Profile'}
                     </a>
                   )}
                 </div>
@@ -504,7 +504,7 @@ function HeroEditor({ heroImage, heroHeader, heroSubtext, highlightsHeader, high
           <button onClick={() => onSave(formData)} className="flex-1 btn-primary">
             Save
           </button>
-          <button onClick={onClose) className="flex-1 btn-secondary">
+          <button onClick={() => onClose()} className="flex-1 btn-secondary">
             Cancel
           </button>
         </div>
@@ -571,7 +571,7 @@ function HighlightsEditor({ highlights, onSave, onClose }) {
           <button onClick={() => onSave(formHighlights)} className="flex-1 btn-primary">
             Save
           </button>
-          <button onClick={onClose} className="flex-1 btn-secondary">
+          <button onClick={() => onClose()} className="flex-1 btn-secondary">
             Cancel
           </button>
         </div>
@@ -636,7 +636,7 @@ function CardsEditor({ cards, onSave, onClose }) {
           <button onClick={() => onSave(formCards)} className="flex-1 btn-primary">
             Save
           </button>
-          <button onClick={onClose} className="flex-1 btn-secondary">
+          <button onClick={() => onClose()} className="flex-1 btn-secondary">
             Cancel
           </button>
         </div>
@@ -690,7 +690,7 @@ function HeroButtonsEditor({ buttons, onSave, onClose }) {
           <button onClick={() => onSave(formButtons)} className="flex-1 btn-primary">
             Save
           </button>
-          <button onClick={onClose} className="flex-1 btn-secondary">
+          <button onClick={() => onClose()} className="flex-1 btn-secondary">
             Cancel
           </button>
         </div>
@@ -767,7 +767,7 @@ function AffiliateEditor({ affiliates, onSave, onClose }) {
           <button onClick={() => onSave(formAffiliates)} className="flex-1 btn-primary">
             Save
           </button>
-          <button onClick={onClose} className="flex-1 btn-secondary">
+          <button onClick={() => onClose()} className="flex-1 btn-secondary">
             Cancel
           </button>
         </div>
@@ -880,7 +880,7 @@ function GuestEditor({ guest, onSave, onClose }) {
             Save
           </button>
           <button
-            onClick={onClose}
+            onClick={() => onClose()}
             className="flex-1 btn-secondary"
           >
             Cancel

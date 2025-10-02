@@ -11,6 +11,7 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
   const [isEditingButtons, setIsEditingButtons] = useState(false)
   const [isEditingHighlights, setIsEditingHighlights] = useState(false)
   const [isEditingCards, setIsEditingCards] = useState(false)
+  const [isEditingFeatured, setIsEditingFeatured] = useState(false)
 
   const {
     hero_image = '',
@@ -18,6 +19,7 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
     hero_subtext = 'Join us for an unforgettable experience',
     overlay_text = '',
     hero_buttons = [],
+    featured_card = null,
     highlight_items = [],
     highlights_header = '',
     highlights_subtext = '',
@@ -79,6 +81,39 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
             <h1 className="text-4xl md:text-6xl font-bold mb-4">{hero_header}</h1>
             <p className="text-xl md:text-2xl text-gray-300">{hero_subtext}</p>
           </div>
+
+          {/* Featured Card (Large single card) */}
+          {featured_card && (featured_card.image || featured_card.description || (featured_card.buttons && featured_card.buttons.length > 0)) && (
+            <div className="mb-12 max-w-4xl mx-auto">
+              <div className="card bg-black/40 backdrop-blur-sm p-8">
+                {featured_card.image && (
+                  <img
+                    src={featured_card.image}
+                    alt={featured_card.description || 'Featured'}
+                    className="w-full h-64 object-cover rounded-lg mb-6"
+                  />
+                )}
+                {featured_card.description && (
+                  <p className="text-gray-300 text-lg mb-6 leading-relaxed">
+                    {featured_card.description}
+                  </p>
+                )}
+                {featured_card.buttons && featured_card.buttons.length > 0 && (
+                  <div className="flex flex-wrap justify-center gap-4">
+                    {featured_card.buttons.slice(0, 3).map((button, index) => (
+                      <a
+                        key={index}
+                        href={button.link || '#'}
+                        className="px-6 py-3 bg-nightshade-600 hover:bg-nightshade-700 rounded-lg text-white font-medium transition"
+                      >
+                        {button.text}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Highlight Items (3 items with image, description, button) */}
           {highlight_items.length > 0 && (
@@ -174,6 +209,9 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
             <div className="flex flex-wrap justify-center gap-2">
               <button onClick={() => setIsEditingHero(true)} className="btn-primary text-sm">
                 Edit Hero Text & Headers
+              </button>
+              <button onClick={() => setIsEditingFeatured(true)} className="btn-secondary text-sm">
+                Edit Featured Card
               </button>
               <button onClick={() => setIsEditingHighlights(true)} className="btn-secondary text-sm">
                 Edit Highlights (3)
@@ -328,14 +366,21 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
           cardsSubtext={cards_subtext || ''}
           overlayText={overlay_text}
           onSave={(data) => {
-            onUpdate('hero_image', data.hero_image)
-            onUpdate('hero_header', data.hero_header)
-            onUpdate('hero_subtext', data.hero_subtext)
-            onUpdate('highlights_header', data.highlights_header)
-            onUpdate('highlights_subtext', data.highlights_subtext)
-            onUpdate('cards_header', data.cards_header)
-            onUpdate('cards_subtext', data.cards_subtext)
-            onUpdate('overlay_text', data.overlay_text)
+            // Batch update all fields at once by calling onUpdate once with all data
+            const updates = {
+              hero_image: data.hero_image,
+              hero_header: data.hero_header,
+              hero_subtext: data.hero_subtext,
+              highlights_header: data.highlights_header,
+              highlights_subtext: data.highlights_subtext,
+              cards_header: data.cards_header,
+              cards_subtext: data.cards_subtext,
+              overlay_text: data.overlay_text
+            }
+            // Update each field in state
+            Object.keys(updates).forEach(key => {
+              onUpdate(key, updates[key])
+            })
             setIsEditingHero(false)
           }}
           onClose={() => setIsEditingHero(false)}
@@ -350,6 +395,17 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
             setIsEditingHighlights(false)
           }}
           onClose={() => setIsEditingHighlights(false)}
+        />
+      )}
+
+      {isEditingFeatured && (
+        <FeaturedCardEditor
+          card={featured_card}
+          onSave={(card) => {
+            onUpdate('featured_card', card)
+            setIsEditingFeatured(false)
+          }}
+          onClose={() => setIsEditingFeatured(false)}
         />
       )}
 
@@ -399,6 +455,124 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
           }}
         />
       )}
+    </div>
+  )
+}
+
+// Featured Card Editor Component
+function FeaturedCardEditor({ card, onSave, onClose }) {
+  const [formData, setFormData] = useState({
+    image: card?.image || '',
+    description: card?.description || '',
+    buttons: card?.buttons || [{ text: '', link: '' }]
+  })
+
+  const updateButton = (index, field, value) => {
+    const newButtons = [...formData.buttons]
+    newButtons[index] = { ...newButtons[index], [field]: value }
+    setFormData(prev => ({ ...prev, buttons: newButtons }))
+  }
+
+  const addButton = () => {
+    if (formData.buttons.length < 3) {
+      setFormData(prev => ({
+        ...prev,
+        buttons: [...prev.buttons, { text: '', link: '' }]
+      }))
+    }
+  }
+
+  const removeButton = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      buttons: prev.buttons.filter((_, i) => i !== index)
+    }))
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+        <h3 className="text-xl font-bold mb-4">Edit Featured Card</h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Featured Image
+            </label>
+            <ImageUpload
+              currentImage={formData.image}
+              onImageUploaded={(url) => setFormData(prev => ({ ...prev, image: url }))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Description
+            </label>
+            <textarea
+              placeholder="Featured card description..."
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white h-32 resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Buttons (up to 3)
+            </label>
+            <div className="space-y-3">
+              {formData.buttons.map((button, index) => (
+                <div key={index} className="p-3 border border-gray-600 rounded space-y-2">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium">Button {index + 1}</span>
+                    {formData.buttons.length > 1 && (
+                      <button
+                        onClick={() => removeButton(index)}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Button text"
+                    value={button.text}
+                    onChange={(e) => updateButton(index, 'text', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                  />
+                  <input
+                    type="url"
+                    placeholder="Button link"
+                    value={button.link}
+                    onChange={(e) => updateButton(index, 'link', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                  />
+                </div>
+              ))}
+              
+              {formData.buttons.length < 3 && (
+                <button
+                  onClick={addButton}
+                  className="w-full px-3 py-2 border-2 border-dashed border-gray-600 rounded text-gray-400 hover:border-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  + Add Button
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex space-x-4 mt-6">
+          <button onClick={() => onSave(formData)} className="flex-1 btn-primary">
+            Save
+          </button>
+          <button onClick={() => onClose()} className="flex-1 btn-secondary">
+            Cancel
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

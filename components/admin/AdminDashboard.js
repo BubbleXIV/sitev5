@@ -521,7 +521,7 @@ function DashboardOverview({ stats, onQuickAction, onRefresh }) {
                     {activity.target_name && <span className="text-gray-500"> "{activity.target_name}"</span>}
                   </div>
                   <div className="text-gray-500 text-xs">
-                    {new Date(activity.created_at).toLocaleTimeString()}
+                    {toCentralTime(activity.created_at)}
                   </div>
                 </div>
               ))
@@ -644,7 +644,7 @@ function ActivityLogs({ logs, onExport, onRefresh }) {
               {filteredLogs.map((log) => (
                 <tr key={log.id} className="hover:bg-white/5">
                   <td className="px-4 py-3 text-sm text-gray-300">
-                    {new Date(log.created_at).toLocaleString()}
+                    {toCentralTime(log.created_at)}
                   </td>
                   <td className="px-4 py-3 text-sm text-nightshade-300">
                     {log.admin_username || 'Unknown'}

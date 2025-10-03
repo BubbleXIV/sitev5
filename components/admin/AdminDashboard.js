@@ -21,7 +21,7 @@ import {
   TrendingUp,
   Database,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
   Image as ImageIcon
 } from 'lucide-react'
 import StaffManager from '@/components/admin/StaffManager'

@@ -1,11 +1,11 @@
 'use client'
 import { useState } from 'react'
-import { X, Plus, Edit, Trash2, Tag, Image as ImageIcon, GripVertical } from 'lucide-react'
+import { X, Plus, Edit, Trash2, ChevronDown, ChevronRight, Image as ImageIcon, GripVertical } from 'lucide-react'
 import ImageUpload from '@/components/ImageUpload'
 
 export default function GalleryTemplate({ data, isEditable, onUpdate }) {
   const [selectedImage, setSelectedImage] = useState(null)
-  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [expandedCategories, setExpandedCategories] = useState({})
   const [isEditingCategories, setIsEditingCategories] = useState(false)
   const [isAddingImage, setIsAddingImage] = useState(false)
   const [editingImageIndex, setEditingImageIndex] = useState(null)
@@ -13,30 +13,35 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
 
   const { gallery_images = [], gallery_categories = [] } = data
 
-  // Filter images by category
-  const filteredImages = selectedCategory === 'all' 
-    ? gallery_images 
-    : gallery_images.filter(img => img.category === selectedCategory)
+  // Group images by category
+  const uncategorizedImages = gallery_images.filter(img => !img.category)
+  const categorizedImages = gallery_categories.reduce((acc, category) => {
+    acc[category] = gallery_images.filter(img => img.category === category)
+    return acc
+  }, {})
+
+  const toggleCategory = (category) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }))
+  }
 
   const addCategory = (name) => {
     if (!name.trim() || gallery_categories.includes(name)) return
     onUpdate('gallery_categories', [...gallery_categories, name.trim()])
+    setExpandedCategories(prev => ({ ...prev, [name.trim()]: true }))
   }
 
   const removeCategory = (categoryToRemove) => {
     const newCategories = gallery_categories.filter(cat => cat !== categoryToRemove)
     onUpdate('gallery_categories', newCategories)
     
-    // Remove category from images and reset filter if needed
     const updatedImages = gallery_images.map(img => ({
       ...img,
       category: img.category === categoryToRemove ? '' : img.category
     }))
     onUpdate('gallery_images', updatedImages)
-    
-    if (selectedCategory === categoryToRemove) {
-      setSelectedCategory('all')
-    }
   }
 
   const addImage = (imageData) => {
@@ -85,66 +90,36 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
     setDraggedIndex(null)
   }
 
-  const navigateImage = (direction) => {
+  const navigateImage = (direction, allImages) => {
     if (!selectedImage) return
-    const currentIndex = filteredImages.findIndex(img => img.id === selectedImage.id)
+    const currentIndex = allImages.findIndex(img => img.id === selectedImage.id)
     let newIndex
     
     if (direction === 'next') {
-      newIndex = currentIndex + 1 >= filteredImages.length ? 0 : currentIndex + 1
+      newIndex = currentIndex + 1 >= allImages.length ? 0 : currentIndex + 1
     } else {
-      newIndex = currentIndex - 1 < 0 ? filteredImages.length - 1 : currentIndex - 1
+      newIndex = currentIndex - 1 < 0 ? allImages.length - 1 : currentIndex - 1
     }
     
-    setSelectedImage(filteredImages[newIndex])
+    setSelectedImage(allImages[newIndex])
   }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
       <div className="px-4 py-8">
-        <h1 className="text-4xl font-bold text-center mb-8">Gallery</h1>
+        <h1 className="text-4xl font-bold text-center mb-4">Gallery</h1>
         
-        {/* Category Filter */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
-          <button
-            onClick={() => setSelectedCategory('all')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              selectedCategory === 'all'
-                ? 'bg-nightshade-600 text-white'
-                : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-            }`}
-          >
-            All
-          </button>
-          {gallery_categories.map(category => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                selectedCategory === category
-                  ? 'bg-nightshade-600 text-white'
-                  : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
-          
-          {isEditable && (
-            <button
-              onClick={() => setIsEditingCategories(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center space-x-2"
-            >
-              <Tag size={16} />
-              <span>Manage Categories</span>
-            </button>
-          )}
-        </div>
-
         {/* Edit Controls */}
         {isEditable && (
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center gap-4 mb-8">
+            <button
+              onClick={() => setIsEditingCategories(true)}
+              className="btn-secondary flex items-center space-x-2"
+            >
+              <Edit size={16} />
+              <span>Manage Categories</span>
+            </button>
             <button
               onClick={() => setIsAddingImage(true)}
               className="btn-primary flex items-center space-x-2"
@@ -156,94 +131,104 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
         )}
       </div>
 
-      {/* Image Grid */}
-      <div className="px-4 pb-8">
-        {filteredImages.length === 0 ? (
+      {/* Gallery Sections */}
+      <div className="px-4 pb-8 max-w-7xl mx-auto space-y-8">
+        {/* Uncategorized Images */}
+        {uncategorizedImages.length > 0 && (
+          <div>
+            <div 
+              className="flex items-center justify-between mb-4 cursor-pointer hover:bg-white/5 p-3 rounded-lg transition-colors"
+              onClick={() => toggleCategory('uncategorized')}
+            >
+              <div className="flex items-center space-x-3">
+                {expandedCategories['uncategorized'] !== false ? (
+                  <ChevronDown size={24} className="text-nightshade-400" />
+                ) : (
+                  <ChevronRight size={24} className="text-nightshade-400" />
+                )}
+                <h2 className="text-2xl font-bold">Uncategorized</h2>
+                <span className="text-sm text-gray-400">({uncategorizedImages.length})</span>
+              </div>
+            </div>
+            
+            {expandedCategories['uncategorized'] !== false && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {uncategorizedImages.map((image) => {
+                  const index = gallery_images.findIndex(img => img.id === image.id)
+                  return (
+                    <ImageCard
+                      key={image.id}
+                      image={image}
+                      index={index}
+                      isEditable={isEditable}
+                      draggedIndex={draggedIndex}
+                      onDragStart={handleDragStart}
+                      onDragOver={handleDragOver}
+                      onDragEnd={handleDragEnd}
+                      onEdit={() => setEditingImageIndex(index)}
+                      onRemove={() => removeImage(index)}
+                      onClick={() => !isEditable && setSelectedImage(image)}
+                    />
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Categorized Images */}
+        {gallery_categories.map(category => (
+          categorizedImages[category]?.length > 0 && (
+            <div key={category}>
+              <div 
+                className="flex items-center justify-between mb-4 cursor-pointer hover:bg-white/5 p-3 rounded-lg transition-colors"
+                onClick={() => toggleCategory(category)}
+              >
+                <div className="flex items-center space-x-3">
+                  {expandedCategories[category] !== false ? (
+                    <ChevronDown size={24} className="text-nightshade-400" />
+                  ) : (
+                    <ChevronRight size={24} className="text-nightshade-400" />
+                  )}
+                  <h2 className="text-2xl font-bold">{category}</h2>
+                  <span className="text-sm text-gray-400">({categorizedImages[category].length})</span>
+                </div>
+              </div>
+              
+              {expandedCategories[category] !== false && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {categorizedImages[category].map((image) => {
+                    const index = gallery_images.findIndex(img => img.id === image.id)
+                    return (
+                      <ImageCard
+                        key={image.id}
+                        image={image}
+                        index={index}
+                        isEditable={isEditable}
+                        draggedIndex={draggedIndex}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDragEnd={handleDragEnd}
+                        onEdit={() => setEditingImageIndex(index)}
+                        onRemove={() => removeImage(index)}
+                        onClick={() => !isEditable && setSelectedImage(image)}
+                      />
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        ))}
+
+        {/* Empty State */}
+        {gallery_images.length === 0 && (
           <div className="text-center py-16">
             <ImageIcon size={64} className="mx-auto text-gray-500 mb-4" />
-            <h3 className="text-xl font-semibold text-gray-400 mb-2">
-              {selectedCategory === 'all' ? 'No images yet' : `No images in "${selectedCategory}"`}
-            </h3>
+            <h3 className="text-xl font-semibold text-gray-400 mb-2">No images yet</h3>
             {isEditable && (
               <p className="text-gray-500">Add some images to get started</p>
             )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {gallery_images.map((image, index) => (
-              <div
-                key={image.id}
-                draggable={isEditable}
-                onDragStart={() => handleDragStart(index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDragEnd={handleDragEnd}
-                className={`relative group ${isEditable ? 'cursor-move' : 'cursor-pointer'} ${
-                  draggedIndex === index ? 'opacity-50' : ''
-                }`}
-                onClick={() => !isEditable && setSelectedImage(image)}
-              >
-                {/* Drag Handle */}
-                {isEditable && (
-                  <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <GripVertical size={20} className="text-white drop-shadow-lg" />
-                  </div>
-                )}
-
-                <div className="aspect-square bg-gray-800 rounded-lg overflow-hidden">
-                  {image.url ? (
-                    <img
-                      src={image.url}
-                      alt={image.title || 'Gallery image'}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ImageIcon size={32} className="text-gray-500" />
-                    </div>
-                  )}
-                  
-                  {/* Image Overlay */}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    {isEditable ? (
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setEditingImageIndex(index)
-                          }}
-                          className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            removeImage(index)
-                          }}
-                          className="p-2 bg-red-600 hover:bg-red-700 rounded-lg"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-white text-sm">Click to view</span>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Image Info */}
-                {image.title && (
-                  <div className="mt-2">
-                    <h3 className="font-semibold truncate">{image.title}</h3>
-                    {image.category && (
-                      <span className="text-xs text-nightshade-400 bg-nightshade-900/20 px-2 py-1 rounded">
-                        {image.category}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
           </div>
         )}
       </div>
@@ -265,7 +250,6 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
               style={{ maxHeight: 'calc(100vh - 8rem)' }}
             />
             
-            {/* Close Button */}
             <button
               onClick={() => setSelectedImage(null)}
               className="absolute top-0 right-0 md:top-4 md:right-4 p-3 bg-black/50 hover:bg-black/70 rounded-lg transition-colors"
@@ -273,13 +257,12 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
               <X size={24} />
             </button>
             
-            {/* Navigation */}
-            {filteredImages.length > 1 && (
+            {gallery_images.length > 1 && (
               <>
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    navigateImage('prev')
+                    navigateImage('prev', gallery_images)
                   }}
                   className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-black/70 rounded-lg text-2xl transition-colors"
                 >
@@ -288,7 +271,7 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    navigateImage('next')
+                    navigateImage('next', gallery_images)
                   }}
                   className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-black/70 rounded-lg text-2xl transition-colors"
                 >
@@ -297,7 +280,6 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
               </>
             )}
             
-            {/* Image Info */}
             {(selectedImage.title || selectedImage.description) && (
               <div className="absolute bottom-0 left-0 right-0 md:bottom-4 md:left-4 md:right-4 bg-black/80 p-4 md:p-6 rounded-none md:rounded-lg">
                 {selectedImage.title && (
@@ -312,7 +294,6 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
         </div>
       )}
 
-      {/* Category Editor Modal */}
       {isEditingCategories && (
         <CategoryEditor
           categories={gallery_categories}
@@ -322,7 +303,6 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
         />
       )}
 
-      {/* Add/Edit Image Modal */}
       {(isAddingImage || editingImageIndex !== null) && (
         <ImageEditor
           image={editingImageIndex !== null ? gallery_images[editingImageIndex] : null}
@@ -336,6 +316,75 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
             setEditingImageIndex(null)
           }}
         />
+      )}
+    </div>
+  )
+}
+
+// Image Card Component
+function ImageCard({ image, index, isEditable, draggedIndex, onDragStart, onDragOver, onDragEnd, onEdit, onRemove, onClick }) {
+  return (
+    <div
+      draggable={isEditable}
+      onDragStart={() => onDragStart(index)}
+      onDragOver={(e) => onDragOver(e, index)}
+      onDragEnd={onDragEnd}
+      className={`relative group ${isEditable ? 'cursor-move' : 'cursor-pointer'} ${
+        draggedIndex === index ? 'opacity-50' : ''
+      }`}
+      onClick={onClick}
+    >
+      {isEditable && (
+        <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+          <GripVertical size={20} className="text-white drop-shadow-lg" />
+        </div>
+      )}
+
+      <div className="aspect-square bg-gray-800 rounded-lg overflow-hidden">
+        {image.url ? (
+          <img
+            src={image.url}
+            alt={image.title || 'Gallery image'}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <ImageIcon size={32} className="text-gray-500" />
+          </div>
+        )}
+        
+        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          {isEditable ? (
+            <div className="flex space-x-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit()
+                }}
+                className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
+              >
+                <Edit size={16} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onRemove()
+                }}
+                className="p-2 bg-red-600 hover:bg-red-700 rounded-lg"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ) : (
+            <span className="text-white text-sm">Click to view</span>
+          )}
+        </div>
+      </div>
+      
+      {image.title && (
+        <div className="mt-2">
+          <h3 className="font-semibold truncate">{image.title}</h3>
+        </div>
       )}
     </div>
   )
@@ -355,7 +404,6 @@ function CategoryEditor({ categories, onAddCategory, onRemoveCategory, onClose }
       <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
         <h3 className="text-xl font-bold mb-4">Manage Categories</h3>
         
-        {/* Add New Category */}
         <div className="flex space-x-2 mb-4">
           <input
             type="text"
@@ -373,7 +421,6 @@ function CategoryEditor({ categories, onAddCategory, onRemoveCategory, onClose }
           </button>
         </div>
 
-        {/* Category List */}
         <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
           {categories.map(category => (
             <div key={category} className="flex justify-between items-center p-2 bg-gray-700 rounded">
@@ -388,10 +435,7 @@ function CategoryEditor({ categories, onAddCategory, onRemoveCategory, onClose }
           ))}
         </div>
 
-        <button
-          onClick={onClose}
-          className="w-full btn-secondary"
-        >
+        <button onClick={onClose} className="w-full btn-secondary">
           Done
         </button>
       </div>
@@ -408,10 +452,6 @@ function ImageEditor({ image, categories, onSave, onClose }) {
     category: image?.category || ''
   })
 
-  const handleSave = () => {
-    onSave(formData)
-  }
-
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
@@ -420,22 +460,16 @@ function ImageEditor({ image, categories, onSave, onClose }) {
         </h3>
         
         <div className="space-y-4">
-          {/* Image Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Image
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Image</label>
             <ImageUpload
               currentImage={formData.url}
               onImageUploaded={(url) => setFormData(prev => ({ ...prev, url }))}
             />
           </div>
 
-          {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Title
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Title</label>
             <input
               type="text"
               value={formData.title}
@@ -445,11 +479,8 @@ function ImageEditor({ image, categories, onSave, onClose }) {
             />
           </div>
 
-          {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Description
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
@@ -458,11 +489,8 @@ function ImageEditor({ image, categories, onSave, onClose }) {
             />
           </div>
 
-          {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Category
-            </label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
             <select
               value={formData.category}
               onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
@@ -477,17 +505,10 @@ function ImageEditor({ image, categories, onSave, onClose }) {
         </div>
 
         <div className="flex space-x-4 mt-6">
-          <button
-            onClick={handleSave}
-            className="flex-1 btn-primary"
-            disabled={!formData.url}
-          >
+          <button onClick={() => onSave(formData)} className="flex-1 btn-primary" disabled={!formData.url}>
             Save
           </button>
-          <button
-            onClick={onClose}
-            className="flex-1 btn-secondary"
-          >
+          <button onClick={onClose} className="flex-1 btn-secondary">
             Cancel
           </button>
         </div>

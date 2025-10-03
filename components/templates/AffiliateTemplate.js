@@ -155,7 +155,12 @@ export default function AffiliateTemplate({ data, isEditable, onUpdate }) {
                       href={affiliate.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                      className="p-2 rounded-lg transition-colors"
+                      style={{
+                        backgroundColor: 'var(--color-secondary)',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-secondary-dark)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-secondary)'}
                       title="Visit Website"
                     >
                       <Globe size={18} />
@@ -166,7 +171,12 @@ export default function AffiliateTemplate({ data, isEditable, onUpdate }) {
                       href={affiliate.discord}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                      className="p-2 rounded-lg transition-colors"
+                      style={{
+                        backgroundColor: 'var(--color-primary)',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-dark)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary)'}
                       title="Join Discord"
                     >
                       <DiscordIcon size={18} />
@@ -180,13 +190,18 @@ export default function AffiliateTemplate({ data, isEditable, onUpdate }) {
                     <div className="flex space-x-1">
                       <button
                         onClick={() => setEditingAffiliateIndex(index)}
-                        className="p-1 bg-blue-600 hover:bg-blue-700 rounded"
+                        className="p-1 rounded transition-colors"
+                        style={{
+                          backgroundColor: 'var(--color-primary)',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-dark)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary)'}
                       >
                         <Edit size={14} />
                       </button>
                       <button
                         onClick={() => removeAffiliate(index)}
-                        className="p-1 bg-red-600 hover:bg-red-700 rounded"
+                        className="p-1 bg-red-600 hover:bg-red-700 rounded transition-colors"
                       >
                         <Trash2 size={14} />
                       </button>

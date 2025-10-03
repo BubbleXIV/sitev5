@@ -34,6 +34,19 @@ import SiteSettingsManager from '@/components/admin/SiteSettingsManager'
 import ThemeEditor from '@/components/admin/ThemeEditor'
 import ImageLibrary from '@/components/ImageLibrary'
 
+const toCentralTime = (utcDate) => {
+  return new Date(utcDate).toLocaleString('en-US', {
+    timeZone: 'America/Chicago',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  })
+}
+
 // Activity Logger Hook
 const useActivityLogger = () => {
   const logActivity = async (action, targetType = null, targetId = null, targetName = null, details = {}) => {
@@ -81,6 +94,7 @@ export default function AdminDashboard({ onLogout }) {
     totalMenuItems: 0,
     totalAdmins: 0,
     totalShadecards: 0,
+    totalImages: 0,
     recentActivity: [],
     pagesByTemplate: {},
     staffByCategory: {},
@@ -117,6 +131,7 @@ export default function AdminDashboard({ onLogout }) {
         supabase.from('menu_items').select('id').then(({ data }) => data?.length || 0),
         supabase.from('shadecard_riddles').select('id').then(({ data }) => data?.length || 0),
         supabase.from('admins').select('id').then(({ data }) => data?.length || 0),
+        supabase.from('image_library').select('id').then(({ data }) => data?.length || 0), 
         supabase.from('page_content').select('id').then(({ data }) => data?.length || 0),
         supabase.from('staff_categories').select('id, name').then(({ data }) => data || []),
         supabase.from('admin_activity_logs').select('*').order('created_at', { ascending: false }).limit(5).then(({ data }) => data || []),
@@ -144,6 +159,7 @@ export default function AdminDashboard({ onLogout }) {
         totalMenuItems: menuItems,
         totalAdmins: admins,
         totalShadecards: shadecards,
+        totalImages: images,
         totalPageContent: pageContent,
         pagesByTemplate,
         staffByCategory,
@@ -377,6 +393,14 @@ function DashboardOverview({ stats, onQuickAction, onRefresh }) {
       value: stats.totalAdmins, 
       icon: Settings, 
       color: 'from-red-500 to-red-600',
+      change: '0%',
+      isPositive: null
+    },
+    { 
+      label: 'Images', 
+      value: stats.totalImages || 0, 
+      icon: ImageIcon, 
+      color: 'from-orange-500 to-orange-600',
       change: '0%',
       isPositive: null
     },

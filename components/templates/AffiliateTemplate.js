@@ -88,7 +88,7 @@ export default function AffiliateTemplate({ data, isEditable, onUpdate }) {
           </div>
         )}
       </div>
-
+  
       {/* Affiliates Grid */}
       <div className="px-4 pb-8">
         {affiliates.length === 0 ? (
@@ -111,13 +111,16 @@ export default function AffiliateTemplate({ data, isEditable, onUpdate }) {
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
                 className={`bg-[var(--bg-gradient-via,#1f2937)] rounded-lg p-6 hover:shadow-xl hover:shadow-[var(--color-primary,#7c3aed)]/20 hover:-translate-y-1 transition-all duration-300 relative group ${
+                  isEditable ? 'cursor-move' : ''
+                } ${draggedIndex === index ? 'opacity-50' : ''}`}
+              >
                 {/* Drag Handle */}
                 {isEditable && (
                   <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <GripVertical size={20} className="text-gray-400" />
                   </div>
                 )}
-
+      
                 {/* Logo */}
                 <div className="flex justify-center items-center mb-6 h-48">
                   {affiliate.logo ? (

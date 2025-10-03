@@ -24,13 +24,17 @@ const handleLogin = async (e) => {
       })
     })
 
+    
     const data = await response.json()
-
+    
     if (!response.ok) {
       throw new Error(data.message || 'Login failed')
     }
-
+    
+    // Store both token and admin data
     localStorage.setItem('admin_token', data.token)
+    localStorage.setItem('admin_data', JSON.stringify(data.admin))  // Add this line
+    
     onLogin()
   } catch (error) {
     console.error('Login error:', error)

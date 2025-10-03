@@ -8,19 +8,21 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'nightshade': {
-          50: '#f8f7ff',
-          100: '#f0edff',
-          200: '#e4dcff',
-          300: '#d1c0ff',
-          400: '#b898ff',
-          500: '#9d6dff',
-          600: '#8b47f7',
-          700: '#7b34e3',
-          800: '#682cbf',
-          900: '#56269c',
-          950: '#350f6a',
-        },
+        'primary': 'var(--color-primary)',
+        'primary-light': 'var(--color-primary-light)',
+        'primary-dark': 'var(--color-primary-dark)',
+        'secondary': 'var(--color-secondary)',
+        'secondary-light': 'var(--color-secondary-light)',
+        'secondary-dark': 'var(--color-secondary-dark)',
+      },
+      backgroundColor: {
+        'gradient-from': 'var(--bg-gradient-from)',
+        'gradient-via': 'var(--bg-gradient-via)',
+        'gradient-to': 'var(--bg-gradient-to)',
+      },
+      textColor: {
+        'primary': 'var(--text-primary)',
+        'secondary': 'var(--text-secondary)',
       },
       animation: {
         'gradient': 'gradient 15s ease infinite',
@@ -43,8 +45,8 @@ module.exports = {
           '50%': { transform: 'translateY(-20px)' },
         },
         glow: {
-          from: { textShadow: '0 0 20px #9d6dff' },
-          to: { textShadow: '0 0 30px #9d6dff, 0 0 40px #9d6dff' },
+          from: { textShadow: '0 0 20px var(--color-primary)' },
+          to: { textShadow: '0 0 30px var(--color-primary), 0 0 40px var(--color-primary)' },
         },
       },
     },

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import AdminDashboard from '@/components/admin/AdminDashboard'
 import AdminLogin from '@/components/admin/AdminLogin'
 
+export const dynamic = 'force-dynamic'
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)

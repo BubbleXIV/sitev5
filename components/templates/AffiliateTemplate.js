@@ -3,6 +3,12 @@ import { useState } from 'react'
 import { Plus, Edit, Trash2, Globe, GripVertical } from 'lucide-react'
 import ImageUpload from '@/components/ImageUpload'
 
+useEffect(() => {
+  console.log('CSS Variables check:')
+  console.log('--bg-gradient-from:', getComputedStyle(document.documentElement).getPropertyValue('--bg-gradient-from'))
+  console.log('--color-primary:', getComputedStyle(document.documentElement).getPropertyValue('--color-primary'))
+}, [])
+
 // Discord icon component (since lucide-react doesn't have it)
 function DiscordIcon({ size = 16 }) {
   return (

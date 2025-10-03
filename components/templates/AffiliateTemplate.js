@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Edit, Trash2, Globe, GripVertical } from 'lucide-react'
 import ImageUpload from '@/components/ImageUpload'
 

@@ -215,6 +215,17 @@ export default function ImageUpload({ currentImage, onImageUploaded, cropAspectR
         .from('images')
         .getPublicUrl(filePath)
 
+
+      // Save to image library
+      await supabase
+        .from('image_library')
+        .insert({
+          url: publicUrl,
+          filename: fileName,
+          notes: ''
+        })
+        .select()
+
       setPreviewImage(publicUrl)
       if (onImageUploaded) {
         onImageUploaded(publicUrl)

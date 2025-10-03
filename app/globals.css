@@ -39,11 +39,21 @@
   }
   
   .btn-primary {
-    @apply px-6 py-3 bg-gradient-to-r from-nightshade-600 to-purple-600 hover:from-nightshade-700 hover:to-purple-700 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl text-white font-medium;
+    @apply px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl text-white font-medium;
+    background: linear-gradient(to right, var(--color-primary), var(--color-secondary));
+  }
+  
+  .btn-primary:hover {
+    background: linear-gradient(to right, var(--color-primary-dark), var(--color-secondary-dark));
   }
   
   .btn-secondary {
-    @apply px-6 py-3 glass hover:bg-white/20 rounded-lg transition-all duration-300 border border-nightshade-500/50 hover:border-nightshade-400 text-white font-medium;
+    @apply px-6 py-3 glass hover:bg-white/20 rounded-lg transition-all duration-300 text-white font-medium;
+    border: 1px solid rgba(var(--color-primary), 0.5);
+  }
+  
+  .btn-secondary:hover {
+    border-color: var(--color-primary-light);
   }
   
   .card {
@@ -118,7 +128,7 @@ select {
 }
 
 select:focus {
-  border-color: #7c3aed;
+  border-color: var(--color-primary);
   outline: none;
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
 }
@@ -148,7 +158,7 @@ input[type="url"]:focus,
 input[type="number"]:focus,
 input[type="password"]:focus,
 textarea:focus {
-  border-color: #7c3aed;
+  border-color: var(--color-primary);
   outline: none;
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
 }

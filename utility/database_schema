@@ -1,152 +1,304 @@
--- Enable RLS
-alter table if exists public.admins enable row level security;
-alter table if exists public.pages enable row level security;
-alter table if exists public.staff enable row level security;
-alter table if exists public.staff_alts enable row level security;
-alter table if exists public.menu_categories enable row level security;
-alter table if exists public.menu_items enable row level security;
-alter table if exists public.page_content enable row level security;
+-- ============================================
+-- Complete Database Schema
+-- ============================================
 
--- Create tables
-create table public.admins (
-  id uuid default gen_random_uuid() primary key,
-  username text unique not null,
-  password_hash text not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+-- Create Tables
+-- ============================================
+
+CREATE TABLE admin_activity_logs (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  admin_id uuid,
+  admin_username character varying(255),
+  action character varying(255) NOT NULL,
+  target_type character varying(100),
+  target_id uuid,
+  target_name character varying(255),
+  details jsonb,
+  ip_address inet,
+  user_agent text,
+  created_at timestamp without time zone DEFAULT now(),
+  PRIMARY KEY (id)
 );
 
-create table public.pages (
-  id uuid default gen_random_uuid() primary key,
-  title text not null,
-  slug text unique not null,
-  is_staff_page boolean default false,
-  is_menu_page boolean default false,
-  sort_order integer default 0,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+CREATE TABLE admins (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  username text NOT NULL,
+  password_hash text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  PRIMARY KEY (id),
+  UNIQUE (username)
 );
 
-create table public.staff (
-  id uuid default gen_random_uuid() primary key,
-  name text not null,
-  role text not null,
+CREATE TABLE image_library (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  url text NOT NULL,
+  filename text NOT NULL,
+  notes text,
+  used_in jsonb DEFAULT '[]'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  PRIMARY KEY (id),
+  UNIQUE (url)
+);
+
+CREATE TABLE menu_categories (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  sort_order integer DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE menu_items (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  category_id uuid,
+  name text NOT NULL,
+  description text,
+  price_gil integer,
+  image_url text,
+  sort_order integer DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  is_hidden boolean DEFAULT false,
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE page_content (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  page_id uuid,
+  content jsonb NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE pages (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  slug text NOT NULL,
+  is_staff_page boolean DEFAULT false,
+  is_menu_page boolean DEFAULT false,
+  sort_order integer DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  template character varying(50) DEFAULT 'blank'::character varying,
+  PRIMARY KEY (id),
+  UNIQUE (slug)
+);
+
+CREATE TABLE shadecard_riddles (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  slug text NOT NULL,
+  intro_text text NOT NULL,
+  venue_logo text,
+  riddles jsonb NOT NULL,
+  final_password text NOT NULL,
+  is_active boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  PRIMARY KEY (id),
+  UNIQUE (slug)
+);
+
+CREATE TABLE site_settings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  key character varying(255) NOT NULL,
+  value jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  PRIMARY KEY (id),
+  UNIQUE (key)
+);
+
+CREATE TABLE staff (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  role text NOT NULL,
   bio text,
   image_url text,
   special_role text,
   special_role_banner text,
-  sort_order integer default 0,
-  show_alts boolean default false,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+  sort_order integer DEFAULT 0,
+  show_alts boolean DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  category_id uuid,
+  PRIMARY KEY (id)
 );
 
-create table public.staff_alts (
-  id uuid default gen_random_uuid() primary key,
-  staff_id uuid references public.staff(id) on delete cascade,
-  name text not null,
-  role text not null,
+CREATE TABLE staff_alts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  staff_id uuid,
+  name text NOT NULL,
+  role text NOT NULL,
   bio text,
   image_url text,
-  sort_order integer default 0,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+  sort_order integer DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  PRIMARY KEY (id)
 );
 
-create table public.menu_categories (
-  id uuid default gen_random_uuid() primary key,
-  name text not null,
-  sort_order integer default 0,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
-create table public.menu_items (
-  id uuid default gen_random_uuid() primary key,
-  category_id uuid references public.menu_categories(id) on delete cascade,
-  name text not null,
+CREATE TABLE staff_categories (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying(255) NOT NULL,
   description text,
-  price_gil integer,
-  image_url text,
-  sort_order integer default 0,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+  sort_order integer DEFAULT 0,
+  is_collapsed boolean DEFAULT false,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  PRIMARY KEY (id)
 );
 
-create table public.page_content (
-  id uuid default gen_random_uuid() primary key,
-  page_id uuid references public.pages(id) on delete cascade,
-  content jsonb not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+CREATE TABLE theme_settings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name character varying(100) NOT NULL DEFAULT 'Default Theme'::character varying,
+  is_active boolean DEFAULT false,
+  primary_color character varying(50) DEFAULT '#7c3aed'::character varying,
+  primary_light character varying(50) DEFAULT '#a78bfa'::character varying,
+  primary_dark character varying(50) DEFAULT '#5b21b6'::character varying,
+  secondary_color character varying(50) DEFAULT '#9333ea'::character varying,
+  secondary_light character varying(50) DEFAULT '#c084fc'::character varying,
+  secondary_dark character varying(50) DEFAULT '#6b21a8'::character varying,
+  bg_gradient_from character varying(50) DEFAULT '#111827'::character varying,
+  bg_gradient_via character varying(50) DEFAULT '#581c87'::character varying,
+  bg_gradient_to character varying(50) DEFAULT '#111827'::character varying,
+  text_primary character varying(50) DEFAULT '#ffffff'::character varying,
+  text_secondary character varying(50) DEFAULT '#d1d5db'::character varying,
+  button_style character varying(20) DEFAULT 'gradient'::character varying,
+  button_radius character varying(20) DEFAULT 'rounded-lg'::character varying,
+  glass_opacity numeric(3,2) DEFAULT 0.10,
+  border_opacity numeric(3,2) DEFAULT 0.20,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  PRIMARY KEY (id)
 );
 
--- Create storage buckets
-insert into storage.buckets (id, name, public) values ('images', 'images', true);
+-- Foreign Key Constraints
+-- ============================================
 
--- RLS policies
-create policy "Enable read access for all users" on public.pages for select using (true);
-create policy "Enable read access for all users" on public.staff for select using (true);
-create policy "Enable read access for all users" on public.staff_alts for select using (true);
-create policy "Enable read access for all users" on public.menu_categories for select using (true);
-create policy "Enable read access for all users" on public.menu_items for select using (true);
-create policy "Enable read access for all users" on public.page_content for select using (true);
+ALTER TABLE staff 
+  ADD CONSTRAINT staff_category_id_fkey 
+  FOREIGN KEY (category_id) 
+  REFERENCES staff_categories(id);
 
--- Admin policies (you'll need to implement proper auth)
-create policy "Enable all access for authenticated users" on public.pages for all using (auth.role() = 'authenticated');
-create policy "Enable all access for authenticated users" on public.staff for all using (auth.role() = 'authenticated');
-create policy "Enable all access for authenticated users" on public.staff_alts for all using (auth.role() = 'authenticated');
-create policy "Enable all access for authenticated users" on public.menu_categories for all using (auth.role() = 'authenticated');
-create policy "Enable all access for authenticated users" on public.menu_items for all using (auth.role() = 'authenticated');
-create policy "Enable all access for authenticated users" on public.page_content for all using (auth.role() = 'authenticated');
+ALTER TABLE admin_activity_logs 
+  ADD CONSTRAINT admin_activity_logs_admin_id_fkey 
+  FOREIGN KEY (admin_id) 
+  REFERENCES admins(id);
 
--- Insert default admin
-insert into public.admins (username, password_hash)
-values ('admin', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'); -- admin123
+ALTER TABLE staff_alts 
+  ADD CONSTRAINT staff_alts_staff_id_fkey 
+  FOREIGN KEY (staff_id) 
+  REFERENCES staff(id) 
+  ON DELETE CASCADE;
 
--- Insert default pages
-insert into public.pages (title, slug, is_staff_page, sort_order) values ('Home', 'home', false, 0);
-insert into public.pages (title, slug, is_staff_page, sort_order) values ('Staff', 'staff', true, 1);
-insert into public.pages (title, slug, is_menu_page, sort_order) values ('Menu', 'menu', true, 2);
+ALTER TABLE menu_items 
+  ADD CONSTRAINT menu_items_category_id_fkey 
+  FOREIGN KEY (category_id) 
+  REFERENCES menu_categories(id) 
+  ON DELETE CASCADE;
 
--- Updated Database Schema - Run this in Supabase SQL Editor
-CREATE TABLE public.shadecard_riddles (
-  id uuid default gen_random_uuid() primary key,
-  title text not null,
-  slug text unique not null,
-  intro_text text not null,
-  venue_logo text, -- URL to logo image
-  riddles jsonb not null, -- Array of riddle objects
-  final_password text not null,
-  is_active boolean default false,
-  created_at timestamp with time zone default timezone('utc'::text, now()),
-  updated_at timestamp with time zone default timezone('utc'::text, now())
-);
+ALTER TABLE page_content 
+  ADD CONSTRAINT page_content_page_id_fkey 
+  FOREIGN KEY (page_id) 
+  REFERENCES pages(id) 
+  ON DELETE CASCADE;
 
--- Insert sample data
-INSERT INTO public.shadecard_riddles (title, slug, intro_text, riddles, final_password, is_active)
-VALUES (
-  'The Nightshade Mystery',
-  'nightshade-mystery',
-  'Welcome, adventurer. The secrets of the realm await those clever enough to uncover them...',
-  '[
-    {
-      "text": "I bloom in darkness, yet bring light to the lost. What am I?",
-      "rpText": "The first clue whispers through the shadows..."
-    },
-    {
-      "text": "In the realm where crystals sing, I am the silence between notes. What am I?",
-      "rpText": "The melody grows clearer, but something is missing..."
-    },
-    {
-      "text": "I am the door that is never locked, yet few dare to enter. What am I?",
-      "rpText": "The path reveals itself to those who truly see..."
-    },
-    {
-      "text": "In the dance of fate, I am both the music and the silence. What am I?",
-      "rpText": "The final truth lies within your grasp..."
-    }
-  ]',
-  'MYSTERY',
-  true
-);
+-- Enable Row Level Security
+-- ============================================
 
--- Add RLS policies
-CREATE POLICY "Enable read access for all users" ON public.shadecard_riddles FOR SELECT USING (true);
-CREATE POLICY "Enable all access for authenticated users" ON public.shadecard_riddles FOR ALL USING (auth.role() = 'authenticated');
+ALTER TABLE admin_activity_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE image_library ENABLE ROW LEVEL SECURITY;
+ALTER TABLE menu_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE menu_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE page_content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE shadecard_riddles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
+ALTER TABLE staff_alts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE staff_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE theme_settings ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies (Add your specific policies here)
+-- ============================================
+-- RLS Policies
+-- ============================================
+
+-- image_library policies
+CREATE POLICY "Anyone can view images" ON public.image_library FOR SELECT
+  USING (true);
+
+CREATE POLICY "Authenticated users can delete images" ON public.image_library FOR DELETE
+  USING (true);
+
+CREATE POLICY "Authenticated users can insert images" ON public.image_library FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Authenticated users can update images" ON public.image_library FOR UPDATE
+  USING (true);
+
+-- menu_categories policies
+CREATE POLICY "Enable all access for authenticated users" ON public.menu_categories FOR ALL
+  USING ((auth.role() = 'authenticated'::text));
+
+CREATE POLICY "Enable read access for all users" ON public.menu_categories FOR SELECT
+  USING (true);
+
+-- menu_items policies
+CREATE POLICY "Enable all access for authenticated users" ON public.menu_items FOR ALL
+  USING ((auth.role() = 'authenticated'::text));
+
+CREATE POLICY "Enable read access for all users" ON public.menu_items FOR SELECT
+  USING (true);
+
+-- page_content policies
+CREATE POLICY "Enable all access for authenticated users" ON public.page_content FOR ALL
+  USING ((auth.role() = 'authenticated'::text));
+
+CREATE POLICY "Enable read access for all users" ON public.page_content FOR SELECT
+  USING (true);
+
+-- pages policies
+CREATE POLICY "Enable all access for authenticated users" ON public.pages FOR ALL
+  USING ((auth.role() = 'authenticated'::text));
+
+CREATE POLICY "Enable read access for all users" ON public.pages FOR SELECT
+  USING (true);
+
+-- shadecard_riddles policies
+CREATE POLICY "Enable all access for authenticated users" ON public.shadecard_riddles FOR ALL
+  USING ((auth.role() = 'authenticated'::text));
+
+CREATE POLICY "Enable read access for all users" ON public.shadecard_riddles FOR SELECT
+  USING (true);
+
+-- site_settings policies
+CREATE POLICY "Allow authenticated users to manage site settings" ON public.site_settings FOR ALL
+  USING ((auth.role() = 'authenticated'::text));
+
+-- staff policies
+CREATE POLICY "Enable all access for authenticated users" ON public.staff FOR ALL
+  USING ((auth.role() = 'authenticated'::text));
+
+CREATE POLICY "Enable read access for all users" ON public.staff FOR SELECT
+  USING (true);
+
+-- staff_alts policies
+CREATE POLICY "Enable all access for authenticated users" ON public.staff_alts FOR ALL
+  USING ((auth.role() = 'authenticated'::text));
+
+CREATE POLICY "Enable read access for all users" ON public.staff_alts FOR SELECT
+  USING (true);
+
+-- theme_settings policies
+CREATE POLICY "Anyone can update themes" ON public.theme_settings FOR UPDATE
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "Anyone can view active theme" ON public.theme_settings FOR SELECT
+  USING ((is_active = true));
+
+CREATE POLICY "Authenticated users can insert themes" ON public.theme_settings FOR INSERT
+  WITH CHECK ((auth.role() = 'authenticated'::text));

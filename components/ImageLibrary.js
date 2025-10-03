@@ -120,8 +120,8 @@ export default function ImageLibrary() {
       // Get all page content
       const { data: pageContents, error: contentsError } = await supabase
         .from('page_content')
-        .select('page_id, content, template_data')
-
+        .select('page_id, content')
+      
       if (contentsError) throw contentsError
 
       // Create a map of image URLs to their usage locations
@@ -131,15 +131,13 @@ export default function ImageLibrary() {
       pageContents.forEach(content => {
         const page = pages.find(p => p.id === content.page_id)
         const pageName = page ? (page.title || page.slug) : 'Unknown'
-
+      
         // Convert content to string for searching
         const contentStr = JSON.stringify(content.content || {})
-        const templateStr = JSON.stringify(content.template_data || {})
-        const combinedStr = contentStr + templateStr
-
+      
         // Find all image URLs in the content
         images.forEach(image => {
-          if (combinedStr.includes(image.url)) {
+          if (contentStr.includes(image.url)) {
             if (!imageUsage[image.url]) {
               imageUsage[image.url] = []
             }

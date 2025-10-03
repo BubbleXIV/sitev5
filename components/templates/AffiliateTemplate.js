@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Plus, Edit, Trash2, Globe, GripVertical } from 'lucide-react'
 import ImageUpload from '@/components/ImageUpload'
 
@@ -67,7 +67,7 @@ export default function AffiliateTemplate({ data, isEditable, onUpdate }) {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-gradient-from,#111827)] text-white">
+    <div className="min-h-screen text-white bg-gradient-themed">
       {/* Header */}
       <div className="px-4 py-8">
         <h1 className="text-4xl font-bold text-center mb-4">Our Affiliates</h1>
@@ -110,7 +110,7 @@ export default function AffiliateTemplate({ data, isEditable, onUpdate }) {
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`bg-[var(--bg-gradient-via,#1f2937)] rounded-lg p-6 hover:shadow-xl hover:shadow-[var(--color-primary,#7c3aed)]/20 hover:-translate-y-1 transition-all duration-300 relative group ${
+                className={`glass-dark rounded-lg p-6 hover:shadow-xl hover:shadow-[var(--color-primary,#7c3aed)]/20 hover:-translate-y-1 transition-all duration-300 relative group ${
                   isEditable ? 'cursor-move' : ''
                 } ${draggedIndex === index ? 'opacity-50' : ''}`}
               >
@@ -252,7 +252,7 @@ function AffiliateEditor({ affiliate, onSave, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-[var(--bg-gradient-via,#1f2937)] rounded-lg p-6 w-full max-w-lg">
+      <div className="glass-dark rounded-lg p-6 w-full max-w-lg">
         <h3 className="text-xl font-bold mb-4">
           {affiliate ? 'Edit Affiliate' : 'Add Affiliate'}
         </h3>
@@ -278,7 +278,7 @@ function AffiliateEditor({ affiliate, onSave, onClose }) {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-3 py-2 bg-[var(--bg-gradient-to,#374151)] border border-gray-600 rounded text-white"
+              className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
               placeholder="Affiliate name"
               required
             />
@@ -292,7 +292,7 @@ function AffiliateEditor({ affiliate, onSave, onClose }) {
             <textarea
               value={formData.bio}
               onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-              className="w-full px-3 py-2 bg-[var(--bg-gradient-to,#374151)] border border-gray-600 rounded text-white h-24 resize-none"
+              className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white h-24 resize-none"
               placeholder="Brief description about this affiliate..."
             />
           </div>
@@ -306,7 +306,7 @@ function AffiliateEditor({ affiliate, onSave, onClose }) {
               type="url"
               value={formData.website}
               onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
-              className="w-full px-3 py-2 bg-[var(--bg-gradient-to,#374151)] border border-gray-600 rounded text-white"
+              className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
               placeholder="https://example.com"
             />
           </div>

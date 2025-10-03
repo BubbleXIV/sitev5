@@ -22,6 +22,7 @@ import {
   Database,
   ArrowUp,
   ArrowDown
+  Image as ImageIcon
 } from 'lucide-react'
 import StaffManager from '@/components/admin/StaffManager'
 import MenuManager from '@/components/admin/MenuManager'
@@ -31,6 +32,7 @@ import ShadecardManager from '@/components/admin/ShadecardManager'
 import FooterManager from '@/components/admin/FooterManager'
 import SiteSettingsManager from '@/components/admin/SiteSettingsManager'
 import ThemeEditor from '@/components/admin/ThemeEditor'
+import ImageLibrary from '@/components/ImageLibrary'
 
 // Activity Logger Hook
 const useActivityLogger = () => {
@@ -227,6 +229,7 @@ export default function AdminDashboard({ onLogout }) {
     { id: 'staff', label: 'Staff', icon: Users },
     { id: 'menu', label: 'Menu', icon: MenuIcon },
     { id: 'theme', label: 'Theme', icon: Settings },
+    { id: 'images', label: 'Images', icon: ImageIcon },
     { id: 'admins', label: 'Admins', icon: Settings },
     { id: 'shadecard', label: 'Shadecard', icon: Settings }, 
     { id: 'footer', label: 'Footer', icon: Globe },
@@ -244,6 +247,8 @@ export default function AdminDashboard({ onLogout }) {
         return <StaffManager />
       case 'menu':
         return <MenuManager />
+      case 'images':
+        return <ImageLibrary /> 
       case 'theme':
         return <ThemeEditor /> 
       case 'admins':

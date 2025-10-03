@@ -38,22 +38,33 @@ import ImageLibrary from '@/components/ImageLibrary'
 const useActivityLogger = () => {
   const logActivity = async (action, targetType = null, targetId = null, targetName = null, details = {}) => {
     try {
-      const adminToken = localStorage.getItem('admin_token')
-      if (!adminToken) return
-
-      const adminData = JSON.parse(adminToken)
+      if (typeof window === 'undefined') return
       
-      await supabase.from('admin_activity_logs').insert([{
+      const adminDataStr = localStorage.getItem('admin_data')
+      if (!adminDataStr) {
+        console.warn('No admin data found, skipping activity log')
+        return
+      }
+
+      const adminData = JSON.parse(adminDataStr)
+      
+      const { error } = await supabase.from('admin_activity_logs').insert([{
         admin_id: adminData.id,
-        admin_username: adminData.username || adminData.email,
+        admin_username: adminData.username,
         action,
         target_type: targetType,
         target_id: targetId,
         target_name: targetName,
         details,
         ip_address: null,
-        user_agent: navigator.userAgent
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null
       }])
+
+      if (error) {
+        console.error('Error logging activity:', error)
+      } else {
+        console.log('Activity logged:', action)
+      }
     } catch (error) {
       console.error('Failed to log activity:', error)
     }
@@ -162,9 +173,10 @@ export default function AdminDashboard({ onLogout }) {
   const handleLogout = async () => {
     await logActivity('logout', 'auth', null, 'Admin Logout')
     localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_data')  // Add this line
     onLogout()
   }
-
+  
   const handleQuickAction = async (action, targetTab) => {
     await logActivity('quick_action', 'navigation', null, `Quick ${action}`)
     setActiveTab(targetTab)

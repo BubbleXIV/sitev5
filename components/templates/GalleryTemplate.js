@@ -105,7 +105,7 @@ export default function GalleryTemplate({ data, isEditable, onUpdate }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gradient-themed text-white">
       {/* Header */}
       <div className="px-4 py-8">
         <h1 className="text-4xl font-bold text-center mb-4">Gallery</h1>
@@ -340,7 +340,7 @@ function ImageCard({ image, index, isEditable, draggedIndex, onDragStart, onDrag
         </div>
       )}
 
-      <div className="aspect-square bg-gray-800 rounded-lg overflow-hidden">
+      <div className="aspect-square glass-dark rounded-lg overflow-hidden">
         {image.url ? (
           <img
             src={image.url}
@@ -361,7 +361,10 @@ function ImageCard({ image, index, isEditable, draggedIndex, onDragStart, onDrag
                   e.stopPropagation()
                   onEdit()
                 }}
-                className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
+                style={{ backgroundColor: 'var(--color-primary)' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-dark)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary)'}
+                className="p-2 rounded-lg"
               >
                 <Edit size={16} />
               </button>
@@ -370,7 +373,10 @@ function ImageCard({ image, index, isEditable, draggedIndex, onDragStart, onDrag
                   e.stopPropagation()
                   onRemove()
                 }}
-                className="p-2 bg-red-600 hover:bg-red-700 rounded-lg"
+                style={{ backgroundColor: 'var(--color-primary)' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-dark)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary)'}
+                className="p-2 rounded-lg"
               >
                 <Trash2 size={16} />
               </button>
@@ -401,7 +407,7 @@ function CategoryEditor({ categories, onAddCategory, onRemoveCategory, onClose }
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+      <div className="glass-dark rounded-lg p-6 w-full max-w-md">
         <h3 className="text-xl font-bold mb-4">Manage Categories</h3>
         
         <div className="flex space-x-2 mb-4">
@@ -410,12 +416,15 @@ function CategoryEditor({ categories, onAddCategory, onRemoveCategory, onClose }
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
             placeholder="Category name"
-            className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+            className="flex-1 px-3 py-2 glass-dark border border-gray-600 rounded text-white"
             onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
           />
           <button
             onClick={handleAdd}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded"
+            className="px-4 py-2 rounded"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-dark)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary)'}
           >
             Add
           </button>
@@ -423,7 +432,7 @@ function CategoryEditor({ categories, onAddCategory, onRemoveCategory, onClose }
 
         <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
           {categories.map(category => (
-            <div key={category} className="flex justify-between items-center p-2 bg-gray-700 rounded">
+            <div key={category} className="glass-dark rounded-lg p-6 w-full max-w-md">
               <span>{category}</span>
               <button
                 onClick={() => onRemoveCategory(category)}
@@ -454,7 +463,7 @@ function ImageEditor({ image, categories, onSave, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+      <div className="glass-dark rounded-lg p-6 w-full max-w-md">
         <h3 className="text-xl font-bold mb-4">
           {image ? 'Edit Image' : 'Add Image'}
         </h3>
@@ -474,7 +483,7 @@ function ImageEditor({ image, categories, onSave, onClose }) {
               type="text"
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+              className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
               placeholder="Image title"
             />
           </div>
@@ -494,7 +503,7 @@ function ImageEditor({ image, categories, onSave, onClose }) {
             <select
               value={formData.category}
               onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+              className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
             >
               <option value="">No category</option>
               {categories.map(category => (

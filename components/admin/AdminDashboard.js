@@ -294,6 +294,7 @@ export default function AdminDashboard({ onLogout }) {
           logs={activityLogs}
           onExport={exportActivityLogs}
           onRefresh={fetchActivityLogs}
+          toCentralTime={toCentralTime}
         />
       default:
         return <DashboardOverview stats={stats} onQuickAction={handleQuickAction} onRefresh={fetchStats} />
@@ -567,7 +568,7 @@ function DashboardOverview({ stats, onQuickAction, onRefresh, toCentralTime }) {
 }
 
 // Activity Logs Component
-function ActivityLogs({ logs, onExport, onRefresh }) {
+function ActivityLogs({ logs, onExport, onRefresh, toCentralTime }) {
   const [filter, setFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
 

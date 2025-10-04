@@ -36,6 +36,36 @@ const PAGE_TEMPLATES = [
   }
 ]
 
+// Activity Logger Hook
+const useActivityLogger = () => {
+  const logActivity = async (action, targetType = null, targetId = null, targetName = null, details = {}) => {
+    try {
+      if (typeof window === 'undefined') return
+      
+      const adminDataStr = localStorage.getItem('admin_data')
+      if (!adminDataStr) return
+
+      const adminData = JSON.parse(adminDataStr)
+      
+      await supabase.from('admin_activity_logs').insert([{
+        admin_id: adminData.id,
+        admin_username: adminData.username,
+        action,
+        target_type: targetType,
+        target_id: targetId,
+        target_name: targetName,
+        details,
+        ip_address: null,
+        user_agent: navigator.userAgent
+      }])
+    } catch (error) {
+      console.error('Failed to log activity:', error)
+    }
+  }
+
+  return { logActivity }
+}
+
 export default function PageManager() {
   const [pages, setPages] = useState([])
   const [isEditing, setIsEditing] = useState(false)
@@ -43,6 +73,7 @@ export default function PageManager() {
   const [editingContent, setEditingContent] = useState(false)
   const [pageContent, setPageContent] = useState(null)
   const [loading, setLoading] = useState(true)
+  const { logActivity } = useActivityLogger()
 
   useEffect(() => {
     fetchPages()
@@ -72,12 +103,22 @@ export default function PageManager() {
           .eq('id', currentPage.id)
 
         if (error) throw error
+        
+        await logActivity('update', 'page', currentPage.id, pageData.title, {
+          changes: pageData
+        })
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('pages')
           .insert([pageData])
+          .select()
 
         if (error) throw error
+        
+        await logActivity('create', 'page', data[0].id, pageData.title, {
+          template: pageData.template,
+          slug: pageData.slug
+        })
       }
 
       await fetchPages()
@@ -90,7 +131,8 @@ export default function PageManager() {
   }
 
   const handleDeletePage = async (id) => {
-    if (!confirm('Are you sure you want to delete this page?')) return
+    const page = pages.find(p => p.id === id)
+    if (!confirm(`Are you sure you want to delete "${page?.title}"?`)) return
 
     try {
       const { error } = await supabase
@@ -99,6 +141,8 @@ export default function PageManager() {
         .eq('id', id)
 
       if (error) throw error
+      
+      await logActivity('delete', 'page', id, page?.title)
       await fetchPages()
     } catch (error) {
       console.error('Error deleting page:', error)
@@ -108,7 +152,6 @@ export default function PageManager() {
 
   const loadPageContent = async (page) => {
     try {
-      // Get the most recent page content record
       const { data } = await supabase
         .from('page_content')
         .select('*')
@@ -162,7 +205,6 @@ export default function PageManager() {
     console.log('🔥 SAVE DEBUG - special_guests in content:', content?.special_guests)
     
     try {
-      // Get the most recent page content record
       const { data: existingRecords } = await supabase
         .from('page_content')
         .select('id')
@@ -194,7 +236,11 @@ export default function PageManager() {
         if (error) throw error
       }
 
-      // Update local state immediately
+      await logActivity('update_content', 'page', currentPage.id, currentPage.title, {
+        template: currentPage.template,
+        contentKeys: Object.keys(content)
+      })
+
       setPageContent(content)
       console.log('🔥 SAVE DEBUG - Save completed successfully')
       alert('Page content saved successfully!')
@@ -213,7 +259,6 @@ export default function PageManager() {
   }
 
   if (editingContent) {
-    // ADD DEBUG STATEMENTS HERE - RIGHT BEFORE PAGEBUILDER RENDERS
     console.log('🔍 PageManager Debug:')
     console.log('currentPage:', currentPage)
     console.log('currentPage.template:', currentPage?.template)
@@ -327,7 +372,7 @@ export default function PageManager() {
                 </div>
               )}
 
-<div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Link
                   href={`/${page.slug}`}
                   target="_blank"
@@ -398,7 +443,6 @@ function PageForm({ page, onSave, onCancel }) {
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    // Generate slug from title if not provided
     const slug = formData.slug || formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 
     onSave({
@@ -419,7 +463,6 @@ function PageForm({ page, onSave, onCancel }) {
       </h3>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Template Selection */}
         {!page && (
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-3">
@@ -451,7 +494,6 @@ function PageForm({ page, onSave, onCancel }) {
           </div>
         )}
 
-        {/* Current Template Display for Editing */}
         {page && (
           <div className="p-4 bg-nightshade-500/10 border border-nightshade-500/20 rounded-lg">
             <div className="flex items-center space-x-3">

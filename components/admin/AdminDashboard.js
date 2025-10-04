@@ -34,19 +34,7 @@ import SiteSettingsManager from '@/components/admin/SiteSettingsManager'
 import ThemeEditor from '@/components/admin/ThemeEditor'
 import ImageLibrary from '@/components/ImageLibrary'
 
-const toCentralTime = (utcDateString) => {
-  const date = new Date(utcDateString)
-  return date.toLocaleString('en-US', {
-    timeZone: 'America/Chicago',
-    month: '2-digit',
-    day: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  })
-}
+
 
 // Activity Logger Hook
 const useActivityLogger = () => {
@@ -88,6 +76,19 @@ const useActivityLogger = () => {
 }
 
 export default function AdminDashboard({ onLogout }) {
+  const toCentralTime = (utcDateString) => {
+  const date = new Date(utcDateString)
+  return date.toLocaleString('en-US', {
+    timeZone: 'America/Chicago',
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  })
+}
   const [activeTab, setActiveTab] = useState('dashboard')
   const [stats, setStats] = useState({
     totalPages: 0,
@@ -188,9 +189,9 @@ export default function AdminDashboard({ onLogout }) {
   }
 
   const handleLogout = async () => {
-    await logActivity('logout', 'auth', null, 'Admin Logout')
+    await logActivity('Logged out', 'auth', null, 'Admin Logout')
     localStorage.removeItem('admin_token')
-    localStorage.removeItem('admin_data')  // Add this line
+    localStorage.removeItem('admin_data')
     onLogout()
   }
   
@@ -201,7 +202,7 @@ export default function AdminDashboard({ onLogout }) {
 
   const handleTabChange = async (tabId) => {
     const tabLabel = tabs.find(t => t.id === tabId)?.label
-    await logActivity('navigation', 'tab', null, tabLabel)
+    await logActivity(`Viewed ${tabLabel}`, 'tab', null, tabLabel)
     setActiveTab(tabId)
   }
 
@@ -269,7 +270,7 @@ export default function AdminDashboard({ onLogout }) {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardOverview stats={stats} onQuickAction={handleQuickAction} onRefresh={fetchStats} />
+        return <DashboardOverview stats={stats} onQuickAction={handleQuickAction} onRefresh={fetchStats} toCentralTime={toCentralTime} />
       case 'pages':
         return <PageManager />
       case 'staff':
@@ -355,7 +356,7 @@ export default function AdminDashboard({ onLogout }) {
 }
 
 // Dashboard Overview Component
-function DashboardOverview({ stats, onQuickAction, onRefresh }) {
+function DashboardOverview({ stats, onQuickAction, onRefresh, toCentralTime }) {
   const statCards = [
     { 
       label: 'Total Pages', 

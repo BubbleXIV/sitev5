@@ -77,18 +77,24 @@ const useActivityLogger = () => {
 
 export default function AdminDashboard({ onLogout }) {
   const toCentralTime = (utcDateString) => {
-  const date = new Date(utcDateString)
-  return date.toLocaleString('en-US', {
-    timeZone: 'America/Chicago',
-    month: '2-digit',
-    day: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  })
-}
+    if (!utcDateString) return 'N/A'
+    
+    const date = new Date(utcDateString)
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) return 'Invalid Date'
+    
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Chicago',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    }).format(date)
+  }
   const [activeTab, setActiveTab] = useState('dashboard')
   const [stats, setStats] = useState({
     totalPages: 0,

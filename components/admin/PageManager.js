@@ -104,9 +104,13 @@ export default function PageManager() {
 
         if (error) throw error
         
-        await logActivity('update', 'page', currentPage.id, pageData.title, {
-          changes: pageData
-        })
+        await logActivity(
+          `Updated page settings for ${pageData.title}`, 
+          'page', 
+          currentPage.id, 
+          pageData.title, 
+          { changes: pageData }
+        )
       } else {
         const { data, error } = await supabase
           .from('pages')
@@ -115,11 +119,16 @@ export default function PageManager() {
 
         if (error) throw error
         
-        await logActivity('create', 'page', data[0].id, pageData.title, {
-          template: pageData.template,
-          slug: pageData.slug
-        })
-      }
+        await logActivity(
+          `Created ${pageData.title}`, 
+          'page', 
+          data[0].id, 
+          pageData.title, 
+          {
+            template: pageData.template,
+            slug: pageData.slug
+          }
+        )
 
       await fetchPages()
       setIsEditing(false)
@@ -235,11 +244,17 @@ export default function PageManager() {
         console.log('🔥 SAVE DEBUG - Insert error:', error)
         if (error) throw error
       }
-
-      await logActivity('update_content', 'page', currentPage.id, currentPage.title, {
-        template: currentPage.template,
-        contentKeys: Object.keys(content)
-      })
+      
+      await logActivity(
+        `Edited ${currentPage.title}`, 
+        'page', 
+        currentPage.id, 
+        currentPage.title, 
+        {
+          template: currentPage.template,
+          contentKeys: Object.keys(content)
+        }
+      )
 
       setPageContent(content)
       console.log('🔥 SAVE DEBUG - Save completed successfully')

@@ -187,7 +187,8 @@ export default function AdminDashboard({ onLogout }) {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100)
-
+  
+      console.log('First log timestamp:', data?.[0]?.created_at)  // Add this line
       setActivityLogs(data || [])
     } catch (error) {
       console.error('Error fetching activity logs:', error)

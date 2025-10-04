@@ -79,9 +79,10 @@ export default function AdminDashboard({ onLogout }) {
   const toCentralTime = (utcDateString) => {
     if (!utcDateString) return 'N/A'
     
-    const date = new Date(utcDateString)
+    // Force UTC interpretation by adding 'Z' if not present
+    const dateStr = utcDateString.includes('Z') ? utcDateString : utcDateString + 'Z'
+    const date = new Date(dateStr)
     
-    // Check if date is valid
     if (isNaN(date.getTime())) return 'Invalid Date'
     
     return new Intl.DateTimeFormat('en-US', {

@@ -129,6 +129,7 @@ export default function PageManager() {
             slug: pageData.slug
           }
         )
+      }
 
       await fetchPages()
       setIsEditing(false)
@@ -142,16 +143,21 @@ export default function PageManager() {
   const handleDeletePage = async (id) => {
     const page = pages.find(p => p.id === id)
     if (!confirm(`Are you sure you want to delete "${page?.title}"?`)) return
-
+    
     try {
       const { error } = await supabase
         .from('pages')
         .delete()
         .eq('id', id)
-
       if (error) throw error
       
-      await logActivity('delete', 'page', id, page?.title)
+      await logActivity(
+        `Deleted ${page?.title}`, 
+        'page', 
+        id, 
+        page?.title
+      )
+      
       await fetchPages()
     } catch (error) {
       console.error('Error deleting page:', error)

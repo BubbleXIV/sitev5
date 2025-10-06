@@ -57,7 +57,7 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gradient-themed text-white">
       {/* Hero Section */}
       <div className="relative min-h-screen flex items-center justify-center">
         {/* Background Image */}
@@ -71,7 +71,7 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
         )}
         
         {!hero_image && (
-          <div className="absolute inset-0 bg-gradient-to-br from-nightshade-900 to-purple-900"></div>
+          <div className="absolute inset-0 bg-gradient-themed"></div>
         )}
 
         {/* Content */}
@@ -85,7 +85,7 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
           {/* Featured Card (Large single card) */}
           {featured_card && (featured_card.image || featured_card.description || (featured_card.buttons && featured_card.buttons.length > 0)) && (
             <div className="mb-12 max-w-4xl mx-auto">
-              <div className="card bg-black/40 backdrop-blur-sm p-8">
+              <div className="glass-dark p-8">
                 {featured_card.image && (
                   <img
                     src={featured_card.image}
@@ -104,7 +104,10 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
                       <a
                         key={index}
                         href={button.link || '#'}
-                        className="px-6 py-3 bg-nightshade-600 hover:bg-nightshade-700 rounded-lg text-white font-medium transition"
+                        className="px-6 py-3 rounded-lg text-white font-medium transition"
+                        style={{ backgroundColor: 'var(--color-primary)' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-dark)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary)'}
                       >
                         {button.text}
                       </a>
@@ -126,7 +129,7 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
               )}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {highlight_items.slice(0, 3).map((item, index) => (
-                  <div key={index} className="card bg-black/40 backdrop-blur-sm">
+                  <div key={index} className="glass-dark p-6">
                     {item.image && (
                       <img
                         src={item.image}
@@ -140,7 +143,10 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
                     {item.buttonText && (
                       <a
                         href={item.link || '#'}
-                        className="inline-block px-4 py-2 bg-nightshade-600 hover:bg-nightshade-700 rounded text-white text-sm font-medium transition"
+                        className="inline-block px-4 py-2 rounded text-white text-sm font-medium transition"
+                        style={{ backgroundColor: 'var(--color-primary)' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-dark)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary)'}
                       >
                         {item.buttonText}
                       </a>
@@ -162,7 +168,7 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
               )}
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {event_cards.slice(0, 5).map((card, index) => (
-                  <div key={index} className="card bg-black/30 backdrop-blur-sm">
+                  <div key={index} className="glass-dark p-4">
                     {card.image && (
                       <img
                         src={card.image}
@@ -176,7 +182,10 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
                     {card.buttonText && (
                       <a
                         href={card.link || '#'}
-                        className="inline-block px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white text-xs font-medium transition"
+                        className="inline-block px-3 py-1 rounded text-white text-xs font-medium transition"
+                        style={{ backgroundColor: 'var(--color-secondary)' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-secondary-dark)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-secondary)'}
                       >
                         {card.buttonText}
                       </a>
@@ -196,7 +205,10 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
                   href={button.link || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-8 py-3 bg-gradient-to-r from-nightshade-600 to-purple-600 hover:from-nightshade-700 hover:to-purple-700 rounded-lg font-semibold transition-colors"
+                  className="px-8 py-3 rounded-lg font-semibold transition-colors"
+                  style={{ background: 'linear-gradient(to right, var(--color-primary), var(--color-secondary))' }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'linear-gradient(to right, var(--color-primary-dark), var(--color-secondary-dark))'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'linear-gradient(to right, var(--color-primary), var(--color-secondary))'}
                 >
                   {button.text}
                 </a>
@@ -311,13 +323,16 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
                         <div className="flex space-x-1">
                           <button
                             onClick={() => setIsEditingGuest(index)}
-                            className="p-1 bg-blue-600 hover:bg-blue-700 rounded-full"
+                            className="p-1 rounded-full transition-colors"
+                            style={{ backgroundColor: 'var(--color-primary)' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-dark)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary)'}
                           >
                             <Edit size={12} />
                           </button>
                           <button
                             onClick={() => removeGuest(index)}
-                            className="p-1 bg-red-600 hover:bg-red-700 rounded-full"
+                            className="p-1 bg-red-600 hover:bg-red-700 rounded-full transition-colors"
                           >
                             <Trash2 size={12} />
                           </button>
@@ -342,7 +357,10 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
                       href={guest.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-block px-4 py-2 bg-nightshade-600 hover:bg-nightshade-700 rounded transition-colors text-white text-sm font-medium"
+                      className="inline-block px-4 py-2 rounded transition-colors text-white text-sm font-medium"
+                      style={{ backgroundColor: 'var(--color-primary)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-dark)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary)'}
                     >
                       {guest?.buttonText || 'View Profile'}
                     </a>
@@ -491,7 +509,7 @@ function FeaturedCardEditor({ card, onSave, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+      <div className="glass-dark rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
         <h3 className="text-xl font-bold mb-4">Edit Featured Card</h3>
         
         <div className="space-y-4">
@@ -513,7 +531,7 @@ function FeaturedCardEditor({ card, onSave, onClose }) {
               placeholder="Featured card description..."
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white h-32 resize-none"
+              className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white h-32 resize-none"
             />
           </div>
 
@@ -540,14 +558,14 @@ function FeaturedCardEditor({ card, onSave, onClose }) {
                     placeholder="Button text"
                     value={button.text}
                     onChange={(e) => updateButton(index, 'text', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                    className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white text-sm"
                   />
                   <input
                     type="url"
                     placeholder="Button link"
                     value={button.link}
                     onChange={(e) => updateButton(index, 'link', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                    className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white text-sm"
                   />
                 </div>
               ))}
@@ -592,7 +610,7 @@ function HeroEditor({ heroImage, heroHeader, heroSubtext, highlightsHeader, high
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg max-h-screen overflow-y-auto">
+      <div className="glass-dark rounded-lg p-6 w-full max-w-lg max-h-screen overflow-y-auto">
         <h3 className="text-xl font-bold mb-4">Edit Hero Section & Headers</h3>
         
         <div className="space-y-4">
@@ -614,7 +632,7 @@ function HeroEditor({ heroImage, heroHeader, heroSubtext, highlightsHeader, high
               type="text"
               value={formData.hero_header}
               onChange={(e) => setFormData(prev => ({ ...prev, hero_header: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+              className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
               placeholder="Epic Event"
             />
           </div>
@@ -626,7 +644,7 @@ function HeroEditor({ heroImage, heroHeader, heroSubtext, highlightsHeader, high
             <textarea
               value={formData.hero_subtext}
               onChange={(e) => setFormData(prev => ({ ...prev, hero_subtext: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white h-20 resize-none"
+              className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white h-20 resize-none"
               placeholder="Join us for an unforgettable experience"
             />
           </div>
@@ -639,14 +657,14 @@ function HeroEditor({ heroImage, heroHeader, heroSubtext, highlightsHeader, high
                 type="text"
                 value={formData.highlights_header}
                 onChange={(e) => setFormData(prev => ({ ...prev, highlights_header: e.target.value }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
                 placeholder="Highlights Header"
               />
               
               <textarea
                 value={formData.highlights_subtext}
                 onChange={(e) => setFormData(prev => ({ ...prev, highlights_subtext: e.target.value }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white h-16 resize-none"
+                className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white h-16 resize-none"
                 placeholder="Highlights Subtext"
               />
             </div>
@@ -660,14 +678,14 @@ function HeroEditor({ heroImage, heroHeader, heroSubtext, highlightsHeader, high
                 type="text"
                 value={formData.cards_header}
                 onChange={(e) => setFormData(prev => ({ ...prev, cards_header: e.target.value }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
                 placeholder="Cards Header"
               />
               
               <textarea
                 value={formData.cards_subtext}
                 onChange={(e) => setFormData(prev => ({ ...prev, cards_subtext: e.target.value }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white h-16 resize-none"
+                className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white h-16 resize-none"
                 placeholder="Cards Subtext"
               />
             </div>
@@ -701,7 +719,7 @@ function HighlightsEditor({ highlights, onSave, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+      <div className="glass-dark rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
         <h3 className="text-xl font-bold mb-4">Edit Highlight Items (3 max)</h3>
         
         <div className="space-y-6">
@@ -718,7 +736,7 @@ function HighlightsEditor({ highlights, onSave, onClose }) {
                 placeholder="Description"
                 value={highlight.description}
                 onChange={(e) => updateHighlight(index, 'description', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white h-20 resize-none"
+                className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white h-20 resize-none"
               />
               
               <div className="grid grid-cols-2 gap-2">
@@ -727,14 +745,14 @@ function HighlightsEditor({ highlights, onSave, onClose }) {
                   placeholder="Button text"
                   value={highlight.buttonText}
                   onChange={(e) => updateHighlight(index, 'buttonText', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
                 />
                 <input
                   type="url"
                   placeholder="Button link"
                   value={highlight.link}
                   onChange={(e) => updateHighlight(index, 'link', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
                 />
               </div>
             </div>
@@ -768,7 +786,7 @@ function CardsEditor({ cards, onSave, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-3xl max-h-screen overflow-y-auto">
+      <div className="glass-dark rounded-lg p-6 w-full max-w-3xl max-h-screen overflow-y-auto">
         <h3 className="text-xl font-bold mb-4">Edit Event Cards (5 max)</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -785,7 +803,7 @@ function CardsEditor({ cards, onSave, onClose }) {
                 placeholder="Description"
                 value={card.description}
                 onChange={(e) => updateCard(index, 'description', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm h-16 resize-none"
+                className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white text-sm h-16 resize-none"
               />
               
               <input
@@ -793,14 +811,14 @@ function CardsEditor({ cards, onSave, onClose }) {
                 placeholder="Button text"
                 value={card.buttonText}
                 onChange={(e) => updateCard(index, 'buttonText', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white text-sm"
               />
               <input
                 type="url"
                 placeholder="Button link"
                 value={card.link}
                 onChange={(e) => updateCard(index, 'link', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+                className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white text-sm"
               />
             </div>
           ))}
@@ -833,7 +851,7 @@ function HeroButtonsEditor({ buttons, onSave, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg">
+      <div className="glass-dark rounded-lg p-6 w-full max-w-lg">
         <h3 className="text-xl font-bold mb-4">Edit Hero Bottom Buttons (3 max)</h3>
         
         <div className="space-y-4">
@@ -846,7 +864,7 @@ function HeroButtonsEditor({ buttons, onSave, onClose }) {
                 placeholder="Button text"
                 value={button.text}
                 onChange={(e) => updateButton(index, 'text', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
               />
               
               <input
@@ -854,7 +872,7 @@ function HeroButtonsEditor({ buttons, onSave, onClose }) {
                 placeholder="Button link"
                 value={button.link}
                 onChange={(e) => updateButton(index, 'link', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
               />
             </div>
           ))}
@@ -893,7 +911,7 @@ function AffiliateEditor({ affiliates, onSave, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg">
+      <div className="glass-dark rounded-lg p-6 w-full max-w-lg">
         <h3 className="text-xl font-bold mb-4">Edit Sponsor Logos</h3>
         
         <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -914,7 +932,7 @@ function AffiliateEditor({ affiliates, onSave, onClose }) {
                 placeholder="Sponsor name"
                 value={affiliate.name}
                 onChange={(e) => updateAffiliate(index, 'name', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
               />
               
               <div>
@@ -970,7 +988,7 @@ function GuestEditor({ guest, onSave, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg">
+      <div className="glass-dark rounded-lg p-6 w-full max-w-lg">
         <h3 className="text-xl font-bold mb-4">
           {guest ? 'Edit Guest' : 'Add Special Guest'}
         </h3>
@@ -997,7 +1015,7 @@ function GuestEditor({ guest, onSave, onClose }) {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+              className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
               placeholder="Guest name"
               required
             />
@@ -1011,7 +1029,7 @@ function GuestEditor({ guest, onSave, onClose }) {
             <textarea
               value={formData.bio}
               onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white h-24 resize-none"
+              className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white h-24 resize-none"
               placeholder="Brief bio about this guest..."
             />
           </div>
@@ -1025,7 +1043,7 @@ function GuestEditor({ guest, onSave, onClose }) {
               type="url"
               value={formData.link}
               onChange={(e) => setFormData(prev => ({ ...prev, link: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+              className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
               placeholder="https://example.com"
             />
           </div>
@@ -1039,7 +1057,7 @@ function GuestEditor({ guest, onSave, onClose }) {
               type="text"
               value={formData.buttonText}
               onChange={(e) => setFormData(prev => ({ ...prev, buttonText: e.target.value }))}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+              className="w-full px-3 py-2 glass-dark border border-gray-600 rounded text-white"
               placeholder="View Profile"
             />
           </div>

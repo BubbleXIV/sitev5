@@ -264,3 +264,31 @@ input[type="range"]::-moz-range-thumb:hover {
 .bg-gradient-themed {
   background: linear-gradient(to bottom right, var(--bg-gradient-from), var(--bg-gradient-via), var(--bg-gradient-to));
 }
+
+/* Universal hover effects for EventTemplate */
+.event-template img {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.event-template img:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+.event-template button {
+  transition: all 0.3s ease;
+}
+
+.event-template button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.event-template a {
+  transition: all 0.3s ease;
+}
+
+.event-template a:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}

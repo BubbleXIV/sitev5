@@ -57,7 +57,7 @@ export default function EventTemplate({ data, isEditable, onUpdate }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-themed text-white">
+    <div className="min-h-screen bg-gradient-themed text-white event-template">
       {/* Hero Section */}
       <div className="relative min-h-screen flex items-center justify-center">
         {/* Background Image */}
